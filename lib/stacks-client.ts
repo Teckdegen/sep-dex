@@ -9,20 +9,17 @@ import {
   callReadOnlyFunction,
   cvToJSON,
 } from '@stacks/transactions';
-import { StacksNetwork, NetworkConfiguration } from '@stacks/network';
+import { StacksTestnet } from '@stacks/network';
 
-// Network configuration
-const NETWORK: NetworkConfiguration = {
-  name: 'mainnet', // or 'testnet'
-  url: 'https://stacks-node-api.mainnet.stacks.co', // or testnet URL
-};
+// Network configuration - NOW CONFIGURED FOR TESTNET
+const NETWORK = new StacksTestnet();
 
 // Contract details
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'; // Replace with your deployed address
 const CONTRACT_NAME = 'sep-dex';
 
 // Helper to get network
-const getNetwork = (): StacksNetwork => new StacksNetwork(NETWORK);
+const getNetwork = () => new StacksTestnet();
 
 // Read-only functions (if available in your contract)
 export async function getUserContractBalance(userAddress: string): Promise<number> {

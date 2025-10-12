@@ -31,18 +31,23 @@ SEP DEX is a perpetual futures trading platform that allows users to trade crypt
 
 1. Clone the repository
 2. Install dependencies: `pnpm install`
-3. Set up environment variables (see `.env.example`)
-4. Run the development server: `pnpm dev`
-5. Connect with a testnet wallet and start trading with test tokens
+3. Create a `.env.local` file based on `.env.example`
+4. Set up your environment variables
+5. Run the development server: `pnpm dev`
+6. Connect with a testnet wallet and start trading with test tokens
 
 ## ⚙️ Environment Variables
 
-Create a `.env.local` file with the following variables:
+Create a `.env.local` file based on the `.env.example` template:
 
 ```
-NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID=your_turnkey_org_id
+TURNKEY_API_PRIVATE_KEY=your_turnkey_api_private_key
+TURNKEY_API_PUBLIC_KEY=your_turnkey_api_public_key
+NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID=your_turnkey_organization_id
 NEXT_PUBLIC_CONTRACT_ADDRESS=your_testnet_stacks_contract_address
 ADMIN_PRIVATE_KEY=your_testnet_admin_private_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ## 🏗️ Architecture

@@ -46,8 +46,6 @@ TURNKEY_API_PUBLIC_KEY=your_turnkey_api_public_key
 NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID=your_turnkey_organization_id
 NEXT_PUBLIC_CONTRACT_ADDRESS=your_testnet_stacks_contract_address
 ADMIN_PRIVATE_KEY=your_testnet_admin_private_key
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ## 🏗️ Architecture

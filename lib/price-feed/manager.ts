@@ -1,9 +1,7 @@
-import { getSupabaseBrowserClient } from "../supabase/client"
 import { ASSET_TO_COINGECKO_ID, type SupportedAsset, type CachedPrice } from "./types"
 
 class PriceFeedManager {
   private memoryCache: Map<SupportedAsset, CachedPrice> = new Map()
-  private readonly CACHE_DURATION = 30000 // 30 seconds
   private readonly MEMORY_CACHE_DURATION = 2000 // 2 seconds
 
   async getPrice(asset: SupportedAsset): Promise<number> {
@@ -13,16 +11,9 @@ class PriceFeedManager {
       return memoryPrice
     }
 
-    // Level 2: Database cache
-    const dbPrice = await this.getDatabaseCachedPrice(asset)
-    if (dbPrice !== null) {
-      this.updateMemoryCache(asset, dbPrice)
-      return dbPrice
-    }
-
-    // Level 3: Fetch from CoinGecko
+    // Level 2: Fetch from CoinGecko
     const freshPrice = await this.fetchFromCoinGecko(asset)
-    await this.updateAllCaches(asset, freshPrice)
+    this.updateMemoryCache(asset, freshPrice)
 
     return freshPrice
   }
@@ -38,31 +29,6 @@ class PriceFeedManager {
     }
 
     return cached.price
-  }
-
-  private async getDatabaseCachedPrice(asset: SupportedAsset): Promise<number | null> {
-    try {
-      const supabase = getSupabaseBrowserClient()
-
-      const { data, error } = await supabase
-        .from("price_feeds")
-        .select("price, timestamp")
-        .eq("symbol", asset)
-        .eq("source", "coingecko")
-        .order("timestamp", { ascending: false })
-        .limit(1)
-        .single()
-
-      if (error || !data) return null
-
-      const age = Date.now() - new Date(data.timestamp).getTime()
-      if (age > this.CACHE_DURATION) return null
-
-      return Number(data.price)
-    } catch (error) {
-      console.error("[v0] Database cache read failed:", error)
-      return null
-    }
   }
 
   private async fetchFromCoinGecko(asset: SupportedAsset): Promise<number> {
@@ -101,25 +67,6 @@ class PriceFeedManager {
       price,
       timestamp: Date.now(),
     })
-  }
-
-  private async updateAllCaches(asset: SupportedAsset, price: number): Promise<void> {
-    // Update memory cache
-    this.updateMemoryCache(asset, price)
-
-    // Update database cache
-    try {
-      const supabase = getSupabaseBrowserClient()
-
-      await supabase.from("price_feeds").insert({
-        symbol: asset,
-        price: price.toString(),
-        source: "coingecko",
-        timestamp: new Date().toISOString(),
-      })
-    } catch (error) {
-      console.error("[v0] Database cache update failed:", error)
-    }
   }
 
   async getPrices(assets: SupportedAsset[]): Promise<Record<SupportedAsset, number>> {

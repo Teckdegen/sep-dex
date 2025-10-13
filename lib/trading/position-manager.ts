@@ -106,8 +106,18 @@ export async function closePosition(
       const profitMicroStx = Math.floor(result.pnl * 1_000_000)
       console.log("[v0] Triggering admin payout:", profitMicroStx)
 
-      // Call admin payout to send profits to user
-      await adminPayout(userAddress, profitMicroStx, adminPrivateKey)
+      // Try to call admin payout contract function first
+      try {
+        // Call admin payout to send profits to user
+        await adminPayout(userAddress, profitMicroStx, adminPrivateKey)
+        console.log("[v0] Contract payout successful")
+      } catch (contractError) {
+        console.error("[v0] Contract payout failed, attempting fallback transfer:", contractError)
+        
+        // Fallback: Send STX directly from admin wallet to user
+        const txId = await sendStx(profitMicroStx, userAddress, adminPrivateKey)
+        console.log("[v0] Fallback transfer successful with txId:", txId)
+      }
     } catch (error) {
       console.error("[v0] Admin payout failed:", error)
     }

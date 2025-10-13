@@ -1,8 +1,18 @@
-// CoinGecko price feed integration
+// Price feed integration with Binance as primary and CoinGecko as backup
 import { savePriceCache, getCachedPrice } from "../storage/local-storage"
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3"
+const BINANCE_API = "https://api.binance.com/api/v3"
 
+// Binance symbols mapping (primary source)
+const ASSET_TO_BINANCE_SYMBOL: Record<string, string> = {
+  BTC: "BTCUSDT",
+  ETH: "ETHUSDT",
+  STX: "STXUSDT",
+  SOL: "SOLUSDT",
+}
+
+// CoinGecko IDs (backup source)
 const ASSET_TO_COINGECKO_ID: Record<string, string> = {
   BTC: "bitcoin",
   ETH: "ethereum",
@@ -22,8 +32,10 @@ export interface PriceData {
   lastUpdated: number
 }
 
-// Get current price from CoinGecko
+// Get current price (Binance primary, CoinGecko backup)
 export async function getCurrentPrice(asset: string): Promise<number> {
+  console.log(`[v0] Getting price for asset: ${asset}`)
+  
   // Check cache first (5 minute cache to reduce API calls and avoid rate limits)
   const cached = getCachedPrice(asset, 300000)
   if (cached !== null) {
@@ -31,47 +43,48 @@ export async function getCurrentPrice(asset: string): Promise<number> {
     return cached
   }
 
+  // Try Binance first for all assets
+  try {
+    const binancePrice = await getPriceFromBinance(asset)
+    if (binancePrice > 0) {
+      savePriceCache(asset, binancePrice)
+      console.log(`[v0] Using Binance price for ${asset}: ${binancePrice}`)
+      return binancePrice
+    }
+  } catch (error) {
+    console.error(`[v0] Binance API error for ${asset}:`, error)
+  }
+
+  // For STX, Binance is the only option, so if it fails, return 0
+  if (asset === "STX") {
+    console.error(`[v0] STX price not available from Binance`)
+    return 0
+  }
+
+  // Fallback to CoinGecko for BTC, ETH, and SOL
   const coinGeckoId = ASSET_TO_COINGECKO_ID[asset]
   if (!coinGeckoId) {
     console.error(`[v0] Unsupported asset: ${asset}`)
-    return 0 // Return default price instead of throwing error
+    return 0
   }
 
   try {
-    console.log(`[v0] Fetching fresh price for ${asset} from CoinGecko`)
+    console.log(`[v0] Fetching fresh price for ${asset} from CoinGecko (ID: ${coinGeckoId})`)
     const response = await fetch(`${COINGECKO_API}/simple/price?ids=${coinGeckoId}&vs_currencies=usd`)
 
     if (!response.ok) {
-      console.error(`[v0] CoinGecko API error: ${response.status}`)
-      
-      // If we hit rate limit, try to use any existing cached price
-      const existingCached = getCachedPrice(asset, 3600000) // Try with 1 hour cache
-      if (existingCached !== null) {
-        console.log(`[v0] Rate limited, using older cached price for ${asset}: ${existingCached}`)
-        return existingCached
-      }
-      
-      return 0 // Return default price instead of throwing error
+      console.error(`[v0] CoinGecko API error for ${asset}: ${response.status} ${response.statusText}`)
+      return 0
     }
 
     const data = await response.json()
-    
-    // Check if we got rate limited
-    if (data.status?.error_code === 429) {
-      console.error(`[v0] CoinGecko rate limit exceeded for ${asset}`)
-      const existingCached = getCachedPrice(asset, 3600000) // Try with 1 hour cache
-      if (existingCached !== null) {
-        console.log(`[v0] Rate limited, using older cached price for ${asset}: ${existingCached}`)
-        return existingCached
-      }
-      return 0
-    }
+    console.log(`[v0] Raw response for ${asset}:`, data)
     
     const price = data[coinGeckoId]?.usd
 
-    if (!price) {
-      console.error(`[v0] No price data for ${asset}`)
-      return 0 // Return default price instead of throwing error
+    if (price === undefined || price === null) {
+      console.error(`[v0] No price data for ${asset} (ID: ${coinGeckoId}). Response:`, data)
+      return 0
     }
 
     // Cache the price
@@ -81,19 +94,39 @@ export async function getCurrentPrice(asset: string): Promise<number> {
     return price
   } catch (error) {
     console.error(`[v0] Failed to fetch price for ${asset}:`, error)
-    
-    // Try to use any existing cached price as fallback
-    const existingCached = getCachedPrice(asset, 3600000) // Try with 1 hour cache
-    if (existingCached !== null) {
-      console.log(`[v0] Error occurred, using older cached price for ${asset}: ${existingCached}`)
-      return existingCached
-    }
-    
-    return 0 // Return default price instead of throwing error
+    return 0
   }
 }
 
-// Get detailed price data
+// Get price from Binance
+async function getPriceFromBinance(asset: string): Promise<number> {
+  const symbol = ASSET_TO_BINANCE_SYMBOL[asset]
+  if (!symbol) {
+    throw new Error(`Unsupported asset for Binance: ${asset}`)
+  }
+
+  try {
+    const response = await fetch(`${BINANCE_API}/ticker/price?symbol=${symbol}`)
+    
+    if (!response.ok) {
+      throw new Error(`Binance API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    const price = parseFloat(data.price)
+
+    if (isNaN(price) || price <= 0) {
+      throw new Error(`Invalid price data from Binance for ${asset}`)
+    }
+
+    return price
+  } catch (error) {
+    console.error(`Failed to fetch price from Binance for ${asset}:`, error)
+    throw error
+  }
+}
+
+// Get detailed price data (CoinGecko only)
 export async function getPriceData(asset: string): Promise<PriceData> {
   const coinGeckoId = ASSET_TO_COINGECKO_ID[asset]
   if (!coinGeckoId) {
@@ -140,8 +173,20 @@ export async function getPriceData(asset: string): Promise<PriceData> {
   }
 }
 
-// Get price history for charts
+// Get price history (Binance primary with time-based data, CoinGecko backup)
 export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ timestamp: number; price: number }>> {
+  // Try to get history from Binance first
+  try {
+    const binanceHistory = await getPriceHistoryFromBinance(asset, days)
+    if (binanceHistory.length > 0) {
+      console.log(`[v0] Using Binance history for ${asset}`)
+      return binanceHistory
+    }
+  } catch (error) {
+    console.error(`[v0] Binance history failed for ${asset}:`, error)
+  }
+
+  // Fallback to CoinGecko
   const coinGeckoId = ASSET_TO_COINGECKO_ID[asset]
   if (!coinGeckoId) {
     throw new Error(`Unsupported asset: ${asset}`)
@@ -171,5 +216,49 @@ export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ 
   } catch (error) {
     console.error(`Failed to fetch price history for ${asset}:`, error)
     return [] // Return empty array instead of throwing error
+  }
+}
+
+// Get price history from Binance with time-based data
+async function getPriceHistoryFromBinance(asset: string, days: number): Promise<Array<{ timestamp: number; price: number }>> {
+  const symbol = ASSET_TO_BINANCE_SYMBOL[asset]
+  if (!symbol) {
+    throw new Error(`Unsupported asset for Binance: ${asset}`)
+  }
+
+  try {
+    // Calculate time range
+    const endTime = Date.now()
+    const startTime = endTime - (days * 24 * 60 * 60 * 1000) // Convert days to milliseconds
+
+    // Determine interval based on days
+    let interval = "1d" // Default to daily
+    if (days <= 1) {
+      interval = "1h" // Hourly for 1 day or less
+    } else if (days <= 7) {
+      interval = "1h" // Hourly for 7 days or less
+    } else if (days <= 30) {
+      interval = "4h" // 4-hourly for 30 days or less
+    }
+
+    const response = await fetch(
+      `${BINANCE_API}/klines?symbol=${symbol}&interval=${interval}&startTime=${startTime}&endTime=${endTime}&limit=1000`
+    )
+
+    if (!response.ok) {
+      throw new Error(`Binance API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    // Parse klines data
+    // Each kline is [openTime, open, high, low, close, volume, closeTime, ...]
+    return data.map((kline: any) => ({
+      timestamp: kline[0], // Open time
+      price: parseFloat(kline[4]), // Close price
+    }))
+  } catch (error) {
+    console.error(`Failed to fetch price history from Binance for ${asset}:`, error)
+    throw error
   }
 }

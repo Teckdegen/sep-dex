@@ -126,7 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const localPrivateKey = getLocalWalletPrivateKey()
         if (localPrivateKey) {
           // Ensure private key has the correct format for Stacks
-          privateKey = localPrivateKey.startsWith('0x') ? localPrivateKey : `0x${localPrivateKey}`
+          // Remove 0x prefix if it exists, then add it back to ensure consistency
+          const cleanKey = localPrivateKey.startsWith('0x') ? localPrivateKey.slice(2) : localPrivateKey
+          privateKey = `0x${cleanKey}`
         } else {
           throw new Error("Local wallet private key not found")
         }
@@ -136,14 +138,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
         if (turnkeyPrivateKey) {
           // Ensure private key has the correct format for Stacks
-          privateKey = turnkeyPrivateKey.startsWith('0x') ? turnkeyPrivateKey : `0x${turnkeyPrivateKey}`
+          // Remove 0x prefix if it exists, then add it back to ensure consistency
+          const cleanKey = turnkeyPrivateKey.startsWith('0x') ? turnkeyPrivateKey.slice(2) : turnkeyPrivateKey
+          privateKey = `0x${cleanKey}`
         } else {
           throw new Error("Turnkey wallet private key not found")
         }
       }
 
+      console.log("[v0] Using private key for deposit:", privateKey.substring(0, 10) + "...") // Log first 10 chars for debugging
+
       // Use user's private key to sign the deposit transaction
-      const txId = await depositStx(amount, user.walletAddress, privateKey)
+      // Amount is already in STX, convert to microSTX
+      const microStxAmount = Math.floor(amount * 1_000_000)
+      const txId = await depositStx(microStxAmount, user.walletAddress, privateKey)
       console.log("[v0] Collateral deposited:", txId)
       return txId
     } catch (error) {
@@ -232,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // For local wallets, get the private key from localStorage
       const localPrivateKey = getLocalWalletPrivateKey()
       if (localPrivateKey) {
-        // Ensure private key has the correct format for Stacks
+        // Ensure private key has the correct format for Stacks (0x prefixed)
         return localPrivateKey.startsWith('0x') ? localPrivateKey : `0x${localPrivateKey}`
       } else {
         throw new Error("Local wallet private key not found")
@@ -241,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // For Turnkey wallets, get the private key from Turnkey service
       const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
       if (turnkeyPrivateKey) {
-        // Ensure private key has the correct format for Stacks
+        // Ensure private key has the correct format for Stacks (0x prefixed)
         return turnkeyPrivateKey.startsWith('0x') ? turnkeyPrivateKey : `0x${turnkeyPrivateKey}`
       } else {
         throw new Error("Turnkey wallet private key not found")

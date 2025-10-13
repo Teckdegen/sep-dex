@@ -5,25 +5,16 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2, Wallet, ArrowDownToLine, ArrowUpFromLine, Copy, Check } from "lucide-react"
-import { getUserBalance, getStacksBalance, sendStx } from "@/lib/blockchain/stacks"
-import { depositStx, withdrawStx } from "@/lib/blockchain/stacks"
+import { Loader2, Wallet, Copy, Check } from "lucide-react"
+import { getStacksBalance } from "@/lib/blockchain/stacks"
 
 export default function WalletPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
   const [balance, setBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
-  const [depositAmount, setDepositAmount] = useState("")
-  const [withdrawAmount, setWithdrawAmount] = useState("")
-  const [recipientAddress, setRecipientAddress] = useState("")
-  const [isDepositing, setIsDepositing] = useState(false)
-  const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -46,62 +37,9 @@ export default function WalletPage() {
       setBalance(stacksBalance)
     } catch (error) {
       console.error("[v0] Failed to load balance:", error)
+      setError(error instanceof Error ? error.message : "Failed to load balance")
     } finally {
       setIsLoadingBalance(false)
-    }
-  }
-
-  async function handleDeposit() {
-    if (!user?.walletAddress || !depositAmount) return
-
-    try {
-      setIsDepositing(true)
-      setError(null)
-      setSuccess(null)
-
-      const amount = Number.parseFloat(depositAmount) * 1_000_000 // Convert to microSTX
-
-      console.log("[v0] Depositing STX:", amount)
-
-      // TODO: Get private key from Turnkey signing
-      // For now, this will fail - need to implement Turnkey transaction signing
-      const txId = await depositStx(amount, user.walletAddress, "")
-
-      setSuccess(`Deposit successful! Transaction: ${txId}`)
-      setDepositAmount("")
-      await loadBalance()
-    } catch (error) {
-      console.error("[v0] Deposit failed:", error)
-      setError(error instanceof Error ? error.message : "Deposit failed")
-    } finally {
-      setIsDepositing(false)
-    }
-  }
-
-  async function handleWithdraw() {
-    if (!user?.walletAddress || !withdrawAmount || !recipientAddress) return
-
-    try {
-      setIsWithdrawing(true)
-      setError(null)
-      setSuccess(null)
-
-      const amount = Number.parseFloat(withdrawAmount) * 1_000_000 // Convert to microSTX
-
-      console.log("[v0] Sending STX:", amount, "to", recipientAddress)
-
-      // TODO: Get private key from Turnkey signing
-      const txId = await sendStx(amount, recipientAddress, "")
-
-      setSuccess(`Transfer successful! Transaction: ${txId}`)
-      setWithdrawAmount("")
-      setRecipientAddress("")
-      await loadBalance()
-    } catch (error) {
-      console.error("[v0] Transfer failed:", error)
-      setError(error instanceof Error ? error.message : "Transfer failed")
-    } finally {
-      setIsWithdrawing(false)
     }
   }
 
@@ -128,6 +66,9 @@ export default function WalletPage() {
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-foreground">Wallet</h1>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => router.push("/positions")}>
+                Positions
+              </Button>
               <Button variant="outline" onClick={() => router.push("/charts")}>
                 Charts
               </Button>
@@ -161,110 +102,15 @@ export default function WalletPage() {
                   )}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  This is your actual wallet balance. Deposit funds to start trading.
+                  This is your actual wallet balance. You can trade directly from this balance.
                 </p>
               </div>
             </div>
           </Card>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="border-border bg-card p-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <ArrowDownToLine className="h-5 w-5 text-green-500" />
-                  <h2 className="text-xl font-semibold text-foreground">Deposit</h2>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="deposit-amount">Amount (STX)</Label>
-                  <Input
-                    id="deposit-amount"
-                    type="number"
-                    placeholder="0.00"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    disabled={isDepositing}
-                  />
-                </div>
-
-                <Button onClick={handleDeposit} disabled={isDepositing || !depositAmount} className="w-full">
-                  {isDepositing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Depositing...
-                    </>
-                  ) : (
-                    "Deposit STX"
-                  )}
-                </Button>
-
-                <p className="text-xs text-muted-foreground">
-                  Fund your in-app wallet with STX to start trading
-                </p>
-              </div>
-            </Card>
-
-            <Card className="border-border bg-card p-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <ArrowUpFromLine className="h-5 w-5 text-red-500" />
-                  <h2 className="text-xl font-semibold text-foreground">Send STX</h2>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="recipient-address">Recipient Address</Label>
-                  <Input
-                    id="recipient-address"
-                    type="text"
-                    placeholder="ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
-                    value={recipientAddress}
-                    onChange={(e) => setRecipientAddress(e.target.value)}
-                    disabled={isWithdrawing}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="withdraw-amount">Amount (STX)</Label>
-                  <Input
-                    id="withdraw-amount"
-                    type="number"
-                    placeholder="0.00"
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
-                    disabled={isWithdrawing}
-                  />
-                </div>
-
-                <Button
-                  onClick={handleWithdraw}
-                  disabled={isWithdrawing || !withdrawAmount || !recipientAddress}
-                  variant="destructive"
-                  className="w-full"
-                >
-                  {isWithdrawing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send STX"
-                  )}
-                </Button>
-
-                <p className="text-xs text-muted-foreground">Send STX from your wallet to another address</p>
-              </div>
-            </Card>
-          </div>
-
           {error && (
             <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
               {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="rounded-lg border border-green-500/50 bg-green-500/10 p-4 text-sm text-green-500">
-              {success}
             </div>
           )}
         </div>

@@ -4,11 +4,9 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { useAllPrices } from "@/lib/price-feed/hooks"
-import { usePositions } from "@/lib/trading/hooks"
 import { Loader2, LogOut, Wallet, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TradingForm } from "@/components/trading/trading-form"
-import { PositionCard } from "@/components/trading/position-card"
 import { PriceCard } from "@/components/trading/price-card"
 import { PriceChart } from "@/components/trading/price-chart"
 import type { SupportedAsset } from "@/lib/price-feed/types"
@@ -16,7 +14,6 @@ import type { SupportedAsset } from "@/lib/price-feed/types"
 export default function TradePage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices()
-  const { positions, isLoading: positionsLoading, error: positionsError } = usePositions()
   const router = useRouter()
   const [selectedAsset, setSelectedAsset] = useState<SupportedAsset>("BTC")
 
@@ -37,7 +34,7 @@ export default function TradePage() {
     )
   }
 
-  console.log("[v0] Trade page - rendering content", { prices, pricesLoading, pricesError, positions, positionsLoading, positionsError })
+  console.log("[v0] Trade page - rendering content", { prices, pricesLoading, pricesError })
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,6 +43,9 @@ export default function TradePage() {
         <div className="container mx-auto flex items-center justify-between p-4">
           <h1 className="text-2xl font-bold text-foreground">SEP DEX</h1>
           <div className="flex items-center gap-4">
+            <Button onClick={() => router.push("/positions")} variant="outline" size="sm">
+              Positions
+            </Button>
             <Button onClick={() => router.push("/charts")} variant="outline" size="sm">
               Charts
             </Button>
@@ -103,33 +103,9 @@ export default function TradePage() {
           </div>
 
           {/* Middle Column - Trading Form */}
-          <div>
+          <div className="lg:col-span-2">
             <h2 className="mb-4 text-lg font-semibold text-foreground">Open Position</h2>
             <TradingForm userId={user.id} />
-          </div>
-
-          {/* Right Column - Positions */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Open Positions</h2>
-            {positionsLoading ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : positionsError ? (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-                Failed to load positions: {positionsError}
-              </div>
-            ) : positions.length === 0 ? (
-              <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground">
-                No open positions
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {positions.map((position) => (
-                  <PositionCard key={position.id} position={position} />
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>

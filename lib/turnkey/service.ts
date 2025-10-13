@@ -135,6 +135,9 @@ export async function createLocalWallet(userName: string): Promise<User> {
     const publicKey = privateKeyToPublic(privateKey)
     const address = getAddressFromPrivateKey(privateKey, 'testnet')
     
+    // Ensure private key is in the correct format (0x prefixed hex string)
+    const formattedPrivateKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`
+    
     // Create user object with real Stacks address
     const user: User = {
       id: `local-user-${Date.now()}`,
@@ -145,7 +148,7 @@ export async function createLocalWallet(userName: string): Promise<User> {
     }
     
     // Save to localStorage
-    localStorage.setItem('local-wallet-private-key', privateKey)
+    localStorage.setItem('local-wallet-private-key', formattedPrivateKey)
     localStorage.setItem('local-wallet-public-key', publicKey as string)
     localStorage.setItem('local-wallet-address', address)
     localStorage.setItem('local-wallet-username', userName)
@@ -161,7 +164,12 @@ export async function createLocalWallet(userName: string): Promise<User> {
 
 // Get local wallet private key
 export function getLocalWalletPrivateKey(): string | null {
-  return localStorage.getItem('local-wallet-private-key')
+  const privateKey = localStorage.getItem('local-wallet-private-key')
+  if (privateKey) {
+    // Ensure private key is in the correct format
+    return privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`
+  }
+  return null
 }
 
 // Get Turnkey wallet private key
@@ -171,11 +179,14 @@ export function getTurnkeyWalletPrivateKey(): string | null {
   // Check if we already have a private key for this Turnkey wallet
   const turnkeyPrivateKey = localStorage.getItem('turnkey-wallet-private-key')
   if (turnkeyPrivateKey) {
-    return turnkeyPrivateKey
+    // Ensure private key is in the correct format
+    return turnkeyPrivateKey.startsWith('0x') ? turnkeyPrivateKey : `0x${turnkeyPrivateKey}`
   }
   
   // Generate a new real private key for Turnkey wallets
   const newPrivateKey = randomPrivateKey()
-  localStorage.setItem('turnkey-wallet-private-key', newPrivateKey)
-  return newPrivateKey
+  // Ensure private key is in the correct format (0x prefixed hex string)
+  const formattedPrivateKey = newPrivateKey.startsWith('0x') ? newPrivateKey : `0x${newPrivateKey}`
+  localStorage.setItem('turnkey-wallet-private-key', formattedPrivateKey)
+  return formattedPrivateKey
 }

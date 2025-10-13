@@ -35,8 +35,8 @@ export default function WalletPage() {
     if (user?.walletAddress) {
       loadBalance()
       
-      // Set up automatic balance refresh every 10 seconds
-      const balanceInterval = setInterval(loadBalance, 10000)
+      // Set up automatic balance refresh every 2 minutes (120000 ms)
+      const balanceInterval = setInterval(loadBalance, 120000)
       
       // Clean up interval on component unmount
       return () => clearInterval(balanceInterval)

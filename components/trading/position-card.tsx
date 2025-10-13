@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { usePositionPnL } from "@/lib/trading/hooks"
@@ -19,6 +19,24 @@ export function PositionCard({ position }: PositionCardProps) {
   const { pnl, pnlPercent, isLiquidated } = usePositionPnL(position)
   const [isClosing, setIsClosing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentPrice, setCurrentPrice] = useState<number>(0) // Add current price state
+
+  // Fetch current price for the position
+  useEffect(() => {
+    async function fetchCurrentPrice() {
+      try {
+        const price = await getCurrentPrice(position.symbol as any)
+        setCurrentPrice(price)
+      } catch (error) {
+        console.error("[v0] Failed to fetch current price:", error)
+      }
+    }
+
+    fetchCurrentPrice()
+    const interval = setInterval(fetchCurrentPrice, 30000) // Update every 30 seconds
+
+    return () => clearInterval(interval)
+  }, [position.symbol])
 
   const handleClose = async () => {
     try {
@@ -48,6 +66,9 @@ export function PositionCard({ position }: PositionCardProps) {
   }
 
   const isProfitable = pnl > 0
+  
+  // Calculate PNL in dollars
+  const pnlInDollars = currentPrice > 0 ? (pnl / currentPrice) * position.collateral : 0
 
   return (
     <Card className={`border-border bg-card p-4 ${isLiquidated ? "opacity-50" : ""}`}>
@@ -85,6 +106,12 @@ export function PositionCard({ position }: PositionCardProps) {
             ${(position.liquidation_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Current Price:</span>
+          <span className="text-foreground">
+            ${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
       </div>
 
       <div className="mb-3 rounded-lg bg-secondary p-3">
@@ -98,7 +125,7 @@ export function PositionCard({ position }: PositionCardProps) {
             )}
             <div className="text-right">
               <div className={`font-semibold ${isProfitable ? "text-success" : "text-danger"}`}>
-                ${Math.abs(pnl).toFixed(2)}
+                ${Math.abs(pnl).toFixed(2)} ({Math.abs(pnlInDollars).toFixed(2)} STX)
               </div>
               <div className={`text-xs ${isProfitable ? "text-success" : "text-danger"}`}>
                 {pnlPercent > 0 ? "+" : ""}

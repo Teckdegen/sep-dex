@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { createWalletWithPasskey, loginOrCreateWallet, createLocalWallet, importLocalWallet } = useAuth()
+  const { createWalletWithPasskey, loginOrCreateWallet, createLocalWallet, importExistingWallet } = useAuth()
   const router = useRouter()
 
   const handleCreateWallet = async () => {
@@ -37,7 +37,7 @@ export default function LoginPage() {
           throw new Error("Please enter a private key to import")
         }
         console.log("[v0] Importing existing wallet for:", userName)
-        await importLocalWallet(userName, privateKey)
+        await importExistingWallet(userName, privateKey)
         router.push("/trade")
       } else if (useLocalWallet) {
         // Create a local wallet without Turnkey

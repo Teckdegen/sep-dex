@@ -185,9 +185,6 @@ export default function WalletPage() {
               <Button variant="outline" onClick={() => router.push("/trade")} className="w-full sm:w-auto">
                 Trading
               </Button>
-              <Button variant="outline" onClick={() => router.push("/debug")} className="w-full sm:w-auto">
-                Debug
-              </Button>
             </div>
           </div>
 

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { getUser, clearUser, type User } from "../storage/local-storage"
-import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage, createLocalWallet, getLocalWalletPrivateKey, getTurnkeyWalletPrivateKey } from "../turnkey/service"
+import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage, createLocalWallet, importLocalWallet, getLocalWalletPrivateKey, getTurnkeyWalletPrivateKey } from "../turnkey/service"
 import { depositStx } from "../stacks-client" // Import Stacks client
 import { getStacksBalance } from "../blockchain/stacks"
 
@@ -17,7 +17,7 @@ interface AuthContextType {
   depositCollateral: (amount: number) => Promise<string> // New function for depositing to contract
   createWalletWithPasskey: (userName: string) => Promise<User> // Simplified one-time wallet creation
   createLocalWallet: (userName: string) => Promise<User> // Local wallet creation
-  importLocalWallet: (userName: string, privateKey: string) => Promise<User> // Import existing wallet
+  importExistingWallet: (userName: string, privateKey: string) => Promise<User> // Import existing wallet
   getUserWalletBalance: () => Promise<number> // Get user's wallet balance
   getUserPrivateKey: () => string // Get user's private key
 }
@@ -313,7 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         depositCollateral,
         createWalletWithPasskey,
         createLocalWallet: createLocalWalletAndSetUser,
-        importLocalWallet: importLocalWalletAndSetUser,
+        importExistingWallet: importLocalWalletAndSetUser,
         getUserWalletBalance,
         getUserPrivateKey,
       }}

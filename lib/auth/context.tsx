@@ -159,6 +159,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Create local wallet and update auth state
+  async function createLocalWalletAndSetUser(userName: string): Promise<User> {
+    try {
+      setIsLoading(true)
+      const newUser = await createLocalWallet(userName)
+      setUser(newUser)
+      console.log("[v0] Local wallet created and user set:", newUser.walletAddress)
+      return newUser
+    } catch (error) {
+      console.error("[v0] Local wallet creation failed:", error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   function logout() {
     setUser(null)
     clearUser()
@@ -177,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         depositCollateral,
         createWalletWithPasskey,
-        createLocalWallet,
+        createLocalWallet: createLocalWalletAndSetUser,
       }}
     >
       {children}

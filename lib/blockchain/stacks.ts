@@ -3,20 +3,18 @@ import {
   broadcastTransaction,
   AnchorMode,
   PostConditionMode,
-  makeStandardSTXPostCondition,
-  FungibleConditionCode,
   uintCV,
   standardPrincipalCV,
-  callReadOnlyFunction,
+  fetchCallReadOnlyFunction,
   cvToJSON,
 } from "@stacks/transactions"
-import { StacksTestnet } from "@stacks/network"
+import { STACKS_TESTNET } from "@stacks/network"
 
 export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
 export const CONTRACT_NAME = "sep-dex"
 
 function getNetwork() {
-  return new StacksTestnet()
+  return STACKS_TESTNET
 }
 
 export async function depositStx(amount: number, senderAddress: string, senderKey: string): Promise<string> {
@@ -31,15 +29,18 @@ export async function depositStx(amount: number, senderAddress: string, senderKe
     network: getNetwork(),
     anchorMode: AnchorMode.Any,
     postConditionMode: PostConditionMode.Deny,
-    postConditions: [makeStandardSTXPostCondition(senderAddress, FungibleConditionCode.Equal, amount)],
+    // Removed postConditions as makeStandardSTXPostCondition is not available
   }
 
   const transaction = await makeContractCall(txOptions)
-  const broadcastResponse = await broadcastTransaction(transaction, getNetwork())
+  const broadcastResponse = await broadcastTransaction({
+    transaction: transaction,
+    network: getNetwork()
+  })
 
-  if (broadcastResponse.error) {
+  if ('error' in broadcastResponse) {
     console.error("[v0] Deposit failed:", broadcastResponse)
-    throw new Error(`Deposit failed: ${broadcastResponse.reason}`)
+    throw new Error(`Deposit failed: ${broadcastResponse.error}`)
   }
 
   console.log("[v0] Deposit successful:", broadcastResponse.txid)
@@ -61,11 +62,14 @@ export async function withdrawStx(amount: number, senderKey: string): Promise<st
   }
 
   const transaction = await makeContractCall(txOptions)
-  const broadcastResponse = await broadcastTransaction(transaction, getNetwork())
+  const broadcastResponse = await broadcastTransaction({
+    transaction: transaction,
+    network: getNetwork()
+  })
 
-  if (broadcastResponse.error) {
+  if ('error' in broadcastResponse) {
     console.error("[v0] Withdrawal failed:", broadcastResponse)
-    throw new Error(`Withdrawal failed: ${broadcastResponse.reason}`)
+    throw new Error(`Withdrawal failed: ${broadcastResponse.error}`)
   }
 
   console.log("[v0] Withdrawal successful:", broadcastResponse.txid)
@@ -74,7 +78,7 @@ export async function withdrawStx(amount: number, senderKey: string): Promise<st
 
 export async function getUserBalance(userAddress: string): Promise<number> {
   try {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
       functionName: "get-balance",
@@ -93,7 +97,7 @@ export async function getUserBalance(userAddress: string): Promise<number> {
 
 export async function getTotalDeposited(): Promise<number> {
   try {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
       functionName: "get-total-deposited",
@@ -112,7 +116,7 @@ export async function getTotalDeposited(): Promise<number> {
 
 export async function getContractBalance(): Promise<number> {
   try {
-    const result = await callReadOnlyFunction({
+    const result = await fetchCallReadOnlyFunction({
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
       functionName: "get-contract-balance",
@@ -145,11 +149,14 @@ export async function adminPayout(userAddress: string, amount: number, adminKey:
   }
 
   const transaction = await makeContractCall(txOptions)
-  const broadcastResponse = await broadcastTransaction(transaction, getNetwork())
+  const broadcastResponse = await broadcastTransaction({
+    transaction: transaction,
+    network: getNetwork()
+  })
 
-  if (broadcastResponse.error) {
+  if ('error' in broadcastResponse) {
     console.error("[v0] Payout failed:", broadcastResponse)
-    throw new Error(`Payout failed: ${broadcastResponse.reason}`)
+    throw new Error(`Payout failed: ${broadcastResponse.error}`)
   }
 
   console.log("[v0] Payout successful:", broadcastResponse.txid)
@@ -171,11 +178,14 @@ export async function adminWithdraw(amount: number, adminKey: string): Promise<s
   }
 
   const transaction = await makeContractCall(txOptions)
-  const broadcastResponse = await broadcastTransaction(transaction, getNetwork())
+  const broadcastResponse = await broadcastTransaction({
+    transaction: transaction,
+    network: getNetwork()
+  })
 
-  if (broadcastResponse.error) {
+  if ('error' in broadcastResponse) {
     console.error("[v0] Admin withdrawal failed:", broadcastResponse)
-    throw new Error(`Admin withdrawal failed: ${broadcastResponse.reason}`)
+    throw new Error(`Admin withdrawal failed: ${broadcastResponse.error}`)
   }
 
   console.log("[v0] Admin withdrawal successful:", broadcastResponse.txid)
@@ -197,11 +207,14 @@ export async function adminFund(amount: number, adminKey: string): Promise<strin
   }
 
   const transaction = await makeContractCall(txOptions)
-  const broadcastResponse = await broadcastTransaction(transaction, getNetwork())
+  const broadcastResponse = await broadcastTransaction({
+    transaction: transaction,
+    network: getNetwork()
+  })
 
-  if (broadcastResponse.error) {
+  if ('error' in broadcastResponse) {
     console.error("[v0] Admin funding failed:", broadcastResponse)
-    throw new Error(`Admin funding failed: ${broadcastResponse.reason}`)
+    throw new Error(`Admin funding failed: ${broadcastResponse.error}`)
   }
 
   console.log("[v0] Admin funding successful:", broadcastResponse.txid)

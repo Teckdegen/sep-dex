@@ -69,6 +69,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function login(): Promise<User> {
+    try {
+      setIsLoading(true)
+      console.log("[v0] Attempting passkey login")
+
+      // Try login with passkey
+      const loginResponse = await loginWithPasskey()
+      const existingUser = getUser()
+
+      if (existingUser && existingUser.subOrgId === loginResponse.organizationId) {
+        setUser(existingUser)
+        console.log("[v0] Login successful:", existingUser.walletAddress)
+        return existingUser
+      }
+
+      throw new Error("Login failed")
+    } catch (loginError) {
+      console.error("[v0] Login failed:", loginError)
+      throw loginError
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   async function depositCollateral(amount: number): Promise<string> {
     if (!user) {
       throw new Error("User not authenticated")

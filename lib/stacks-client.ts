@@ -5,56 +5,44 @@ import {
   PostConditionMode,
   stringAsciiCV,
   uintCV,
-  principalCV,
-  callReadOnlyFunction,
-  cvToJSON,
+  principalCV
 } from '@stacks/transactions';
-import { StacksTestnet } from '@stacks/network';
-
-// Network configuration - NOW CONFIGURED FOR TESTNET
-const NETWORK = new StacksTestnet();
+import { STACKS_TESTNET } from '@stacks/network';
 
 // Contract details
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM'; // Replace with your deployed address
 const CONTRACT_NAME = 'sep-dex';
 
 // Helper to get network
-const getNetwork = () => new StacksTestnet();
-
-// Read-only functions (if available in your contract)
-export async function getUserContractBalance(userAddress: string): Promise<number> {
-  try {
-    const result = await callReadOnlyFunction({
-      contractAddress: CONTRACT_ADDRESS,
-      contractName: CONTRACT_NAME,
-      functionName: 'get-balance',
-      functionArgs: [principalCV(userAddress)],
-      senderAddress: userAddress,
-      network: getNetwork(),
-    });
-    return parseInt(cvToJSON(result).value, 10) || 0;
-  } catch (error) {
-    console.error('Error fetching user balance:', error);
-    throw error;
-  }
+function getNetwork() {
+  return STACKS_TESTNET;
 }
 
 // Contract call functions (only deposit and create-position for now)
 export async function depositStx(amount: number, userAddress: string, privateKey: string): Promise<string> {
   try {
-    const tx = await makeContractCall({
+    const txOptions = {
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
       functionName: 'deposit-stx',
       functionArgs: [uintCV(amount * 1000000)], // Convert to microSTX
       senderKey: privateKey,
+      network: getNetwork(),
       anchorMode: AnchorMode.Any,
       postConditionMode: PostConditionMode.Allow,
-      network: getNetwork(),
+    };
+
+    const transaction = await makeContractCall(txOptions);
+    const broadcastResponse = await broadcastTransaction({
+      transaction: transaction,
+      network: getNetwork()
     });
 
-    const txId = await broadcastTransaction(tx, getNetwork());
-    return txId;
+    if ('error' in broadcastResponse) {
+      throw new Error(`Transaction failed: ${broadcastResponse.error}`);
+    }
+
+    return broadcastResponse.txid;
   } catch (error) {
     console.error('Error depositing STX:', error);
     throw error;
@@ -70,7 +58,7 @@ export async function createPosition(
   userAddress: string
 ): Promise<string> {
   try {
-    const tx = await makeContractCall({
+    const txOptions = {
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
       functionName: 'create-position',
@@ -81,13 +69,22 @@ export async function createPosition(
         uintCV(collateral * 1000000), // Convert to microSTX
       ],
       senderKey: privateKey,
+      network: getNetwork(),
       anchorMode: AnchorMode.Any,
       postConditionMode: PostConditionMode.Allow,
-      network: getNetwork(),
+    };
+
+    const transaction = await makeContractCall(txOptions);
+    const broadcastResponse = await broadcastTransaction({
+      transaction: transaction,
+      network: getNetwork()
     });
 
-    const txId = await broadcastTransaction(tx, getNetwork());
-    return txId;
+    if ('error' in broadcastResponse) {
+      throw new Error(`Transaction failed: ${broadcastResponse.error}`);
+    }
+
+    return broadcastResponse.txid;
   } catch (error) {
     console.error('Error creating position:', error);
     throw error;
@@ -96,19 +93,28 @@ export async function createPosition(
 
 export async function adminPayout(userAddress: string, amount: number, adminPrivateKey: string): Promise<string> {
   try {
-    const tx = await makeContractCall({
+    const txOptions = {
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
       functionName: 'admin-payout',
       functionArgs: [principalCV(userAddress), uintCV(amount * 1000000)],
       senderKey: adminPrivateKey,
+      network: getNetwork(),
       anchorMode: AnchorMode.Any,
       postConditionMode: PostConditionMode.Allow,
-      network: getNetwork(),
+    };
+
+    const transaction = await makeContractCall(txOptions);
+    const broadcastResponse = await broadcastTransaction({
+      transaction: transaction,
+      network: getNetwork()
     });
 
-    const txId = await broadcastTransaction(tx, getNetwork());
-    return txId;
+    if ('error' in broadcastResponse) {
+      throw new Error(`Transaction failed: ${broadcastResponse.error}`);
+    }
+
+    return broadcastResponse.txid;
   } catch (error) {
     console.error('Error processing payout:', error);
     throw error;

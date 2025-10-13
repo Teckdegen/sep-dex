@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
     
     const response = {
       walletId: `wallet-${Date.now()}`,
-      addresses: [address] // Use real Stacks testnet address instead of mock
+      addresses: [address], // Use real Stacks testnet address instead of mock
+      // Include the private key in the response so the client can store it
+      // This is only for the mock implementation - in real Turnkey, private keys are never exposed
+      privateKey: privateKey
     };
 
     return NextResponse.json(response);

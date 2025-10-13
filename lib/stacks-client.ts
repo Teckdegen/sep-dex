@@ -19,17 +19,17 @@ function getNetwork() {
 }
 
 // Contract call functions (only deposit and create-position for now)
-export async function depositStx(amount: number, userAddress: string, privateKey: string): Promise<string> {
+export async function depositStx(amount: number, senderAddress: string, senderKey: string): Promise<string> {
   try {
     const txOptions = {
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
-      functionName: 'deposit-stx',
-      functionArgs: [uintCV(amount * 1000000)], // Convert to microSTX
-      senderKey: privateKey,
+      functionName: 'deposit',
+      functionArgs: [uintCV(amount)],
+      senderKey: senderKey,
       network: getNetwork(),
       anchorMode: AnchorMode.Any,
-      postConditionMode: PostConditionMode.Allow,
+      postConditionMode: PostConditionMode.Deny,
     };
 
     const transaction = await makeContractCall(txOptions);

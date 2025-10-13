@@ -61,9 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const walletResponse = await createStacksWallet(subOrgId, `${userName}-stacks-wallet`)
       const walletId = walletResponse.walletId
       const walletAddress = walletResponse.addresses[0] // First address
+      const privateKey = walletResponse.privateKey // Private key from mock implementation
 
-      // Save user to localStorage
-      const newUser = await createUserInStorage(subOrgId, walletAddress, walletId)
+      // Save user to localStorage, including the private key for Turnkey wallets
+      const newUser = await createUserInStorage(subOrgId, walletAddress, walletId, privateKey)
       setUser(newUser)
 
       console.log("[v0] Turnkey wallet created successfully with passkey:", newUser.walletAddress)
@@ -126,10 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // For local wallets, get the private key from localStorage
         const localPrivateKey = getLocalWalletPrivateKey()
         if (localPrivateKey) {
-          // Ensure private key has the correct format for Stacks
-          // Remove 0x prefix if it exists, then add it back to ensure consistency
-          const cleanKey = localPrivateKey.startsWith('0x') ? localPrivateKey.slice(2) : localPrivateKey
-          privateKey = `0x${cleanKey}`
+          privateKey = localPrivateKey // Already properly formatted by getLocalWalletPrivateKey
         } else {
           throw new Error("Local wallet private key not found")
         }
@@ -138,10 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // In a real implementation, this would use Turnkey's signing API
         const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
         if (turnkeyPrivateKey) {
-          // Ensure private key has the correct format for Stacks
-          // Remove 0x prefix if it exists, then add it back to ensure consistency
-          const cleanKey = turnkeyPrivateKey.startsWith('0x') ? turnkeyPrivateKey.slice(2) : turnkeyPrivateKey
-          privateKey = `0x${cleanKey}`
+          privateKey = turnkeyPrivateKey // Already properly formatted by getTurnkeyWalletPrivateKey
         } else {
           throw new Error("Turnkey wallet private key not found")
         }
@@ -266,8 +261,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // For local wallets, get the private key from localStorage
       const localPrivateKey = getLocalWalletPrivateKey()
       if (localPrivateKey) {
-        // Ensure private key has the correct format for Stacks (0x prefixed)
-        return localPrivateKey.startsWith('0x') ? localPrivateKey : `0x${localPrivateKey}`
+        // Validate private key format
+        let formattedPrivateKey = localPrivateKey.trim();
+        
+        // Remove 0x prefix if present (just in case)
+        if (formattedPrivateKey.startsWith('0x')) {
+          formattedPrivateKey = formattedPrivateKey.slice(2);
+        }
+        
+        // Ensure it's a valid 64-character hex string
+        if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+          throw new Error("Invalid private key format in local storage");
+        }
+        
+        // Return WITHOUT 0x prefix as expected by Stacks.js
+        return formattedPrivateKey;
       } else {
         throw new Error("Local wallet private key not found")
       }
@@ -275,8 +283,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // For Turnkey wallets, get the private key from Turnkey service
       const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
       if (turnkeyPrivateKey) {
-        // Ensure private key has the correct format for Stacks (0x prefixed)
-        return turnkeyPrivateKey.startsWith('0x') ? turnkeyPrivateKey : `0x${turnkeyPrivateKey}`
+        // Validate private key format
+        let formattedPrivateKey = turnkeyPrivateKey.trim();
+        
+        // Remove 0x prefix if present (just in case)
+        if (formattedPrivateKey.startsWith('0x')) {
+          formattedPrivateKey = formattedPrivateKey.slice(2);
+        }
+        
+        // Ensure it's a valid 64-character hex string
+        if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+          throw new Error("Invalid Turnkey private key format in local storage");
+        }
+        
+        // Return WITHOUT 0x prefix as expected by Stacks.js
+        return formattedPrivateKey;
       } else {
         throw new Error("Turnkey wallet private key not found")
       }

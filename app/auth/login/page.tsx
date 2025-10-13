@@ -77,8 +77,21 @@ export default function LoginPage() {
   // Function to derive address from private key (for display purposes)
   const deriveAddressFromPrivateKey = (pk: string) => {
     try {
+      // Validate private key format
+      let formattedPrivateKey = pk.trim();
+      
+      // Remove 0x prefix if present
+      if (formattedPrivateKey.startsWith('0x')) {
+        formattedPrivateKey = formattedPrivateKey.slice(2);
+      }
+      
+      // Ensure it's a valid 64-character hex string
+      if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+        return "Invalid private key format";
+      }
+      
       const { getAddressFromPrivateKey } = require('@stacks/transactions')
-      const formattedPrivateKey = pk.startsWith('0x') ? pk : `0x${pk}`
+      // Use private key without 0x prefix
       return getAddressFromPrivateKey(formattedPrivateKey, 'testnet')
     } catch (error) {
       return "Invalid private key"

@@ -227,18 +227,6 @@ export async function adminFund(amount: number, adminKey: string): Promise<strin
   return broadcastResponse.txid
 }
 
-// Get transaction status
-export async function getTransactionStatus(txId: string): Promise<string> {
-  try {
-    const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/tx/${txId}`)
-    const data = await response.json()
-    return data.tx_status
-  } catch (error) {
-    console.error("[v0] Failed to get transaction status:", error)
-    return "pending"
-  }
-}
-
 // Send STX directly from one wallet to another
 export async function sendStx(amount: number, recipient: string, senderKey: string): Promise<string> {
   try {
@@ -269,14 +257,28 @@ export async function sendStx(amount: number, recipient: string, senderKey: stri
   }
 }
 
+// Get transaction status
+export async function getTransactionStatus(txId: string): Promise<string> {
+  try {
+    const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/tx/${txId}`)
+    const data = await response.json()
+    return data.tx_status
+  } catch (error) {
+    console.error("[v0] Failed to get transaction status:", error)
+    return "pending"
+  }
+}
+
 // Get actual Stacks wallet balance (not contract balance)
 export async function getStacksBalance(address: string): Promise<number> {
   try {
     console.log("[v0] Fetching Stacks balance for address:", address)
     
     // Add a small delay to ensure any recent transactions are processed
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Increased delay to 2 seconds to give more time for transaction processing
+    await new Promise(resolve => setTimeout(resolve, 2000))
     
+    // Try primary endpoint first
     const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/address/${address}/balances`)
     
     if (!response.ok) {
@@ -310,6 +312,23 @@ export async function getStacksBalance(address: string): Promise<number> {
     } catch (altError) {
       console.error("[v0] Alternative endpoint also failed:", altError)
     }
+    
+    // If both endpoints fail, try one more time with a longer delay
+    try {
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      const retryResponse = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/address/${address}/balances`)
+      if (retryResponse.ok) {
+        const data = await retryResponse.json()
+        let balance = 0
+        if (data.stx && data.stx.balance) {
+          balance = Number(data.stx.balance)
+        }
+        return balance
+      }
+    } catch (retryError) {
+      console.error("[v0] Retry also failed:", retryError)
+    }
+    
     return 0
   }
 }

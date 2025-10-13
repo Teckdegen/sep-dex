@@ -23,6 +23,7 @@ export default function WalletPage() {
   const [recipientAddress, setRecipientAddress] = useState("")
   const [amount, setAmount] = useState("")
   const [isSending, setIsSending] = useState(false)
+  const [lastTxId, setLastTxId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -41,6 +42,45 @@ export default function WalletPage() {
       return () => clearInterval(balanceInterval)
     }
   }, [user])
+
+  // Effect to monitor transaction status
+  useEffect(() => {
+    if (lastTxId) {
+      // Check transaction status and update balance when confirmed
+      const checkTxStatus = async () => {
+        try {
+          const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/tx/${lastTxId}`)
+          const data = await response.json()
+          
+          if (data.tx_status === 'success') {
+            // Transaction confirmed, refresh balance
+            await loadBalance()
+            setLastTxId(null)
+          } else if (data.tx_status === 'abort_by_response' || data.tx_status === 'abort_by_post_condition') {
+            // Transaction failed, stop checking
+            setLastTxId(null)
+          }
+          // For pending status, we'll check again
+        } catch (error) {
+          console.error("Failed to check transaction status:", error)
+        }
+      }
+      
+      // Check transaction status every 5 seconds
+      const txInterval = setInterval(checkTxStatus, 5000)
+      
+      // Clean up interval after 2 minutes (maximum wait time)
+      const timeout = setTimeout(() => {
+        clearInterval(txInterval)
+        setLastTxId(null)
+      }, 120000)
+      
+      return () => {
+        clearInterval(txInterval)
+        clearTimeout(timeout)
+      }
+    }
+  }, [lastTxId])
 
   async function loadBalance() {
     if (!user?.walletAddress) return
@@ -100,6 +140,7 @@ export default function WalletPage() {
       setSuccess(`Transfer successful! Transaction ID: ${txId}`)
       setRecipientAddress("")
       setAmount("")
+      setLastTxId(txId) // Track transaction to monitor status
       
       // Reload balance immediately after successful transfer
       await loadBalance()
@@ -123,27 +164,27 @@ export default function WalletPage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
         <div className="mx-auto max-w-6xl">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Wallet Dashboard</h1>
               <p className="text-muted-foreground">Manage your STX tokens and trading positions</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => router.push("/positions")}>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={() => router.push("/positions")} className="w-full sm:w-auto">
                 Positions
               </Button>
-              <Button variant="outline" onClick={() => router.push("/charts")}>
+              <Button variant="outline" onClick={() => router.push("/charts")} className="w-full sm:w-auto">
                 Charts
               </Button>
-              <Button variant="outline" onClick={() => router.push("/trade")}>
+              <Button variant="outline" onClick={() => router.push("/trade")} className="w-full sm:w-auto">
                 Trading
               </Button>
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-3">
             {/* Wallet Overview */}
-            <div className="lg:col-span-1 space-y-6">
+            <div className="md:col-span-1 space-y-6">
               <Card className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -156,7 +197,7 @@ export default function WalletPage() {
                   <div className="space-y-2">
                     <Label>Wallet Address</Label>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 text-sm bg-muted p-2 rounded">
+                      <code className="flex-1 text-sm bg-muted p-2 rounded break-all">
                         {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
                       </code>
                       <Button size="sm" variant="outline" onClick={copyAddress}>
@@ -219,7 +260,7 @@ export default function WalletPage() {
             </div>
 
             {/* Send STX Form */}
-            <div className="lg:col-span-2">
+            <div className="md:col-span-2">
               <Card className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -230,7 +271,7 @@ export default function WalletPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-6 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label htmlFor="recipient-address">Recipient Address</Label>
                         <Input
@@ -287,6 +328,7 @@ export default function WalletPage() {
                         }}
                         size="lg"
                         disabled={isSending}
+                        className="flex-1"
                       >
                         Clear
                       </Button>
@@ -308,6 +350,11 @@ export default function WalletPage() {
                 <Card className="border-green-500/50 bg-green-500/10 mt-6">
                   <CardContent className="p-4">
                     <p className="text-sm text-green-500">{success}</p>
+                    {lastTxId && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Monitoring transaction status...
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               )}

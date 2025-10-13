@@ -14,6 +14,7 @@ import { Loader2, AlertTriangle } from "lucide-react"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 import type { PositionSide } from "@/lib/trading/types"
 import { useAuth } from "@/lib/auth/context"
+import { usePrice } from "@/lib/price-feed/hooks"
 
 interface TradingFormProps {
   userId: string

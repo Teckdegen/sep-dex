@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function checkAuth() {
     try {
       const existingUser = getUser()
+      console.log("[v0] Auth check - existing user:", existingUser)
 
       if (existingUser) {
         setUser(existingUser)
@@ -163,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function createLocalWalletAndSetUser(userName: string): Promise<User> {
     try {
       setIsLoading(true)
+      console.log("[v0] Creating local wallet for user:", userName)
       const newUser = await createLocalWallet(userName)
       setUser(newUser)
       console.log("[v0] Local wallet created and user set:", newUser.walletAddress)
@@ -180,6 +182,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearUser()
     console.log("[v0] User logged out")
   }
+
+  console.log("[v0] AuthProvider state:", { user, isLoading, isAuthenticated: !!user })
 
   return (
     <AuthContext.Provider

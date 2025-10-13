@@ -20,8 +20,10 @@ export function usePrice(asset: SupportedAsset, refreshInterval = 2000) {
           setError(null)
         }
       } catch (err) {
+        console.error(`[v0] Failed to fetch price for ${asset}:`, err)
         if (isMounted) {
           setError(err instanceof Error ? err.message : "Failed to fetch price")
+          setPrice(0) // Set default price on error
         }
       } finally {
         if (isMounted) {
@@ -58,8 +60,16 @@ export function useAllPrices(refreshInterval = 2000) {
           setError(null)
         }
       } catch (err) {
+        console.error("[v0] Failed to fetch all prices:", err)
         if (isMounted) {
           setError(err instanceof Error ? err.message : "Failed to fetch prices")
+          // Set default prices on error
+          setPrices({
+            BTC: 0,
+            ETH: 0,
+            STX: 0,
+            SOL: 0,
+          })
         }
       } finally {
         if (isMounted) {

@@ -15,14 +15,17 @@ interface PositionCardProps {
 export function PositionCard({ position }: PositionCardProps) {
   const { pnl, pnlPercent, isLiquidated } = usePositionPnL(position)
   const [isClosing, setIsClosing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleClose = async () => {
     try {
       setIsClosing(true)
+      setError(null)
       await closePosition(position.id, position.entry_price + pnl)
       window.location.reload()
     } catch (error) {
       console.error("[v0] Failed to close position:", error)
+      setError(error instanceof Error ? error.message : "Failed to close position")
     } finally {
       setIsClosing(false)
     }
@@ -34,15 +37,15 @@ export function PositionCard({ position }: PositionCardProps) {
     <Card className={`border-border bg-card p-4 ${isLiquidated ? "opacity-50" : ""}`}>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground">{position.symbol}</span>
+          <span className="font-semibold text-foreground">{position.symbol || "N/A"}</span>
           <span
             className={`rounded px-2 py-0.5 text-xs font-medium ${
               position.side === "long" ? "bg-success/20 text-success" : "bg-danger/20 text-danger"
             }`}
           >
-            {position.side.toUpperCase()}
+            {position.side ? position.side.toUpperCase() : "N/A"}
           </span>
-          <span className="text-xs text-muted-foreground">{position.leverage}x</span>
+          <span className="text-xs text-muted-foreground">{position.leverage || 0}x</span>
         </div>
         {isLiquidated && <span className="text-xs font-medium text-destructive">LIQUIDATED</span>}
       </div>
@@ -50,15 +53,21 @@ export function PositionCard({ position }: PositionCardProps) {
       <div className="mb-3 space-y-1 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Entry:</span>
-          <span className="text-foreground">${position.entry_price.toLocaleString()}</span>
+          <span className="text-foreground">
+            ${(position.entry_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Collateral:</span>
-          <span className="text-foreground">${position.collateral.toLocaleString()}</span>
+          <span className="text-foreground">
+            ${(position.collateral || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Liquidation:</span>
-          <span className="text-foreground">${position.liquidation_price.toLocaleString()}</span>
+          <span className="text-foreground">
+            ${(position.liquidation_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
         </div>
       </div>
 
@@ -83,6 +92,8 @@ export function PositionCard({ position }: PositionCardProps) {
           </div>
         </div>
       </div>
+
+      {error && <div className="mb-2 rounded bg-destructive/10 p-2 text-xs text-destructive">{error}</div>}
 
       {!isLiquidated && (
         <Button

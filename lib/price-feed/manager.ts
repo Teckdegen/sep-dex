@@ -58,7 +58,8 @@ class PriceFeedManager {
       return price
     } catch (error) {
       console.error("[v0] CoinGecko fetch failed:", error)
-      throw new Error(`Failed to fetch price for ${asset}`)
+      // Return a default price instead of throwing an error to prevent the UI from breaking
+      return 0
     }
   }
 
@@ -83,7 +84,18 @@ class PriceFeedManager {
 
   async getAllPrices(): Promise<Record<SupportedAsset, number>> {
     const assets: SupportedAsset[] = ["BTC", "ETH", "STX", "SOL"]
-    return this.getPrices(assets)
+    try {
+      return await this.getPrices(assets)
+    } catch (error) {
+      console.error("[v0] Failed to fetch all prices:", error)
+      // Return default prices instead of throwing an error to prevent the UI from breaking
+      return {
+        BTC: 0,
+        ETH: 0,
+        STX: 0,
+        SOL: 0,
+      }
+    }
   }
 }
 

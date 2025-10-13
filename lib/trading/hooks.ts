@@ -42,7 +42,9 @@ export function usePositions() {
         setPositions(formattedPositions)
         setError(null)
       } catch (err) {
+        console.error("[v0] Failed to fetch positions:", err)
         setError(err instanceof Error ? err.message : "Failed to fetch positions")
+        setPositions([]) // Set empty array on error
       } finally {
         setIsLoading(false)
       }
@@ -82,6 +84,10 @@ export function usePositionPnL(position: Position | null) {
         setIsLiquidated(result.isLiquidated)
       } catch (error) {
         console.error("[v0] PnL calculation failed:", error)
+        // Set default values on error
+        setPnl(0)
+        setPnlPercent(0)
+        setIsLiquidated(false)
       }
     }
 
@@ -108,7 +114,9 @@ export function usePriceData(asset: string) {
         setPrice(currentPrice)
         setError(null)
       } catch (err) {
+        console.error("[v0] Failed to fetch price:", err)
         setError(err instanceof Error ? err.message : "Failed to fetch price")
+        setPrice(null) // Set null on error
       } finally {
         setIsLoading(false)
       }

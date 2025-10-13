@@ -13,23 +13,28 @@ import { PriceCard } from "@/components/trading/price-card"
 
 export default function TradePage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
-  const { prices, isLoading: pricesLoading } = useAllPrices()
-  const { positions, isLoading: positionsLoading } = usePositions()
+  const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices()
+  const { positions, isLoading: positionsLoading, error: positionsError } = usePositions()
   const router = useRouter()
 
   useEffect(() => {
+    console.log("[v0] Trade page - auth state:", { user, isAuthenticated, isLoading })
     if (!isLoading && !isAuthenticated) {
+      console.log("[v0] User not authenticated, redirecting to home")
       router.push("/")
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isAuthenticated, isLoading, router, user])
 
   if (isLoading || !user) {
+    console.log("[v0] Trade page - showing loading state")
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
+
+  console.log("[v0] Trade page - rendering content", { prices, pricesLoading, pricesError, positions, positionsLoading, positionsError })
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,6 +69,10 @@ export default function TradePage() {
               <div className="flex justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
+            ) : pricesError ? (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                Failed to load prices: {pricesError}
+              </div>
             ) : (
               <div className="space-y-3">
                 {prices &&
@@ -86,6 +95,10 @@ export default function TradePage() {
             {positionsLoading ? (
               <div className="flex justify-center p-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : positionsError ? (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                Failed to load positions: {positionsError}
               </div>
             ) : positions.length === 0 ? (
               <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground">

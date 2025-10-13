@@ -261,7 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // For local wallets, get the private key from localStorage
       const localPrivateKey = getLocalWalletPrivateKey()
       if (localPrivateKey) {
-        // Validate private key format
+        // Validate and format private key
         let formattedPrivateKey = localPrivateKey.trim();
         
         // Remove 0x prefix if present (just in case)
@@ -269,9 +269,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           formattedPrivateKey = formattedPrivateKey.slice(2);
         }
         
-        // Ensure it's a valid 64-character hex string
-        if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+        // Ensure it's a valid hex string (64 or 65 characters)
+        if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
           throw new Error("Invalid private key format in local storage");
+        }
+        
+        // If it's 65 characters, check if the first character is '0' and remove it if so
+        if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
+          formattedPrivateKey = formattedPrivateKey.slice(1);
         }
         
         // Return WITHOUT 0x prefix as expected by Stacks.js
@@ -283,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // For Turnkey wallets, get the private key from Turnkey service
       const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
       if (turnkeyPrivateKey) {
-        // Validate private key format
+        // Validate and format private key
         let formattedPrivateKey = turnkeyPrivateKey.trim();
         
         // Remove 0x prefix if present (just in case)
@@ -291,9 +296,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           formattedPrivateKey = formattedPrivateKey.slice(2);
         }
         
-        // Ensure it's a valid 64-character hex string
-        if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+        // Ensure it's a valid hex string (64 or 65 characters)
+        if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
           throw new Error("Invalid Turnkey private key format in local storage");
+        }
+        
+        // If it's 65 characters, check if the first character is '0' and remove it if so
+        if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
+          formattedPrivateKey = formattedPrivateKey.slice(1);
         }
         
         // Return WITHOUT 0x prefix as expected by Stacks.js

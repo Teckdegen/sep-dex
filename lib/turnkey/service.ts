@@ -153,7 +153,7 @@ export async function createUserInStorage(subOrgId: string, walletAddress: strin
   
   // For Turnkey wallets, also store the private key
   if (privateKey) {
-    // Validate private key format
+    // Validate and format private key
     let formattedPrivateKey = privateKey.trim();
     
     // Remove 0x prefix if present
@@ -161,10 +161,15 @@ export async function createUserInStorage(subOrgId: string, walletAddress: strin
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid 64-character hex string
-    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+    // Ensure it's a valid hex string (64 or 65 characters)
+    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
       console.error("[v0] Invalid Turnkey private key format:", formattedPrivateKey);
       throw new Error("Invalid Turnkey private key format");
+    }
+    
+    // If it's 65 characters, check if the first character is '0' and remove it if so
+    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
+      formattedPrivateKey = formattedPrivateKey.slice(1);
     }
     
     // Store WITHOUT 0x prefix
@@ -201,7 +206,7 @@ export async function createLocalWallet(userName: string): Promise<User> {
     const publicKey = privateKeyToPublic(privateKey)
     const address = getAddressFromPrivateKey(privateKey, 'testnet')
     
-    // Validate private key format
+    // Validate and format private key
     let formattedPrivateKey = privateKey.trim();
     
     // Remove 0x prefix if present
@@ -209,9 +214,14 @@ export async function createLocalWallet(userName: string): Promise<User> {
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid 64-character hex string
-    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+    // Ensure it's a valid hex string (64 or 65 characters)
+    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
       throw new Error("Generated invalid private key format");
+    }
+    
+    // If it's 65 characters, check if the first character is '0' and remove it if so
+    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
+      formattedPrivateKey = formattedPrivateKey.slice(1);
     }
     
     // Create user object with real Stacks address
@@ -243,7 +253,7 @@ export async function importLocalWallet(userName: string, privateKey: string): P
   console.log("[v0] Importing local Stacks wallet for:", userName)
   
   try {
-    // Validate private key format
+    // Validate and format private key
     let formattedPrivateKey = privateKey.trim();
     
     // Remove 0x prefix if present
@@ -251,9 +261,14 @@ export async function importLocalWallet(userName: string, privateKey: string): P
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid 64-character hex string
-    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
-      throw new Error("Invalid private key format. Must be a 64-character hexadecimal string.");
+    // Ensure it's a valid hex string (64 or 65 characters)
+    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
+      throw new Error("Invalid private key format. Must be a 64 or 65-character hexadecimal string.");
+    }
+    
+    // If it's 65 characters, check if the first character is '0' and remove it if so
+    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
+      formattedPrivateKey = formattedPrivateKey.slice(1);
     }
     
     // For Stacks.js functions, we use the private key WITHOUT 0x prefix
@@ -287,7 +302,7 @@ export async function importLocalWallet(userName: string, privateKey: string): P
 export function getLocalWalletPrivateKey(): string | null {
   const privateKey = localStorage.getItem('local-wallet-private-key')
   if (privateKey) {
-    // Validate private key format
+    // Validate and format private key
     let formattedPrivateKey = privateKey.trim();
     
     // Remove 0x prefix if present (just in case)
@@ -295,10 +310,15 @@ export function getLocalWalletPrivateKey(): string | null {
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid 64-character hex string
-    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+    // Ensure it's a valid hex string (64 or 65 characters)
+    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
       console.error("[v0] Invalid private key format in local storage:", formattedPrivateKey);
       return null;
+    }
+    
+    // If it's 65 characters, check if the first character is '0' and remove it if so
+    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
+      formattedPrivateKey = formattedPrivateKey.slice(1);
     }
     
     // Return WITHOUT 0x prefix as expected by Stacks.js
@@ -314,7 +334,7 @@ export function getTurnkeyWalletPrivateKey(): string | null {
   // Get the private key that was stored when the Turnkey wallet was created
   const turnkeyPrivateKey = localStorage.getItem('turnkey-wallet-private-key')
   if (turnkeyPrivateKey) {
-    // Validate private key format
+    // Validate and format private key
     let formattedPrivateKey = turnkeyPrivateKey.trim();
     
     // Remove 0x prefix if present (just in case)
@@ -322,10 +342,15 @@ export function getTurnkeyWalletPrivateKey(): string | null {
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid 64-character hex string
-    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+    // Ensure it's a valid hex string (64 or 65 characters)
+    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
       console.error("[v0] Invalid Turnkey private key format in local storage:", formattedPrivateKey);
       return null;
+    }
+    
+    // If it's 65 characters, check if the first character is '0' and remove it if so
+    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
+      formattedPrivateKey = formattedPrivateKey.slice(1);
     }
     
     // Return WITHOUT 0x prefix as expected by Stacks.js

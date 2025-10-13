@@ -272,7 +272,7 @@ export async function getTransactionStatus(txId: string): Promise<string> {
 // Get actual Stacks wallet balance (not contract balance)
 export async function getStacksBalance(address: string): Promise<number> {
   try {
-    console.log("[v0] Fetching Stacks balance for address using Stacks testnet API:", address)
+    console.log("[v0] Fetching Stacks balance for address via API route:", address)
     
     // Validate address
     if (!address || address.length < 20) {
@@ -280,19 +280,15 @@ export async function getStacksBalance(address: string): Promise<number> {
       return 0
     }
     
-    // Use Stacks testnet API for balance checking with cache busting
+    // Call our API route which will proxy the request to Stacks testnet API
     const timestamp = new Date().getTime();
-    const url = `${STACKS_TESTNET.client.baseUrl}/v2/accounts/${address}?proof=0&tip=latest&_=${timestamp}`
+    const url = `/api/stacks-balance?address=${address}&_=${timestamp}`
     
-    console.log("[v0] Fetching from Stacks testnet API URL:", url)
+    console.log("[v0] Fetching from API route:", url)
     
-    // Fetch balance with proper headers to prevent caching
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
         'Accept': 'application/json',
       }
     })
@@ -306,23 +302,12 @@ export async function getStacksBalance(address: string): Promise<number> {
     const data = await response.json()
     console.log("[v0] Balance response for address", address, ":", JSON.stringify(data, null, 2))
     
-    // The balance is returned as a string in microSTX, convert to number
-    // Handle both balance and stx.balance formats
-    let balance = 0
-    if (data.balance) {
-      balance = Number(data.balance)
-    } else if (data.stx && data.stx.balance) {
-      balance = Number(data.stx.balance)
-    } else if (data.stx && data.stx.balance && data.stx.balance.amount) {
-      // Additional format handling
-      balance = Number(data.stx.balance.amount)
-    }
-    
-    console.log("[v0] Raw balance (microSTX):", balance)
-    console.log("[v0] Converted balance (STX):", balance / 1_000_000)
-    return balance / 1_000_000 // Return balance in STX, not microSTX
+    // Return the balance in STX (already converted in the API route)
+    const balance = data.balance || 0
+    console.log("[v0] Balance (STX):", balance)
+    return balance
   } catch (error) {
-    console.error("[v0] Failed to get Stacks balance using Stacks testnet API:", error)
+    console.error("[v0] Failed to get Stacks balance via API route:", error)
     return 0
   }
 }

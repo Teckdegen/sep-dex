@@ -1,5 +1,6 @@
 import { Turnkey } from "@turnkey/sdk-server";
 import { NextRequest, NextResponse } from "next/server";
+import { randomPrivateKey, getAddressFromPrivateKey } from '@stacks/transactions';
 
 type TBody = {
   subOrganizationId: string;
@@ -18,10 +19,13 @@ export async function POST(req: NextRequest) {
     });
 
     // Note: In a real implementation, we would use the correct Turnkey SDK methods
-    // For now, we'll return a mock response
+    // For now, we'll generate a real Stacks testnet address for testing
+    const privateKey = randomPrivateKey();
+    const address = getAddressFromPrivateKey(privateKey, 'testnet');
+    
     const response = {
       walletId: `wallet-${Date.now()}`,
-      addresses: [`address-${Date.now()}`]
+      addresses: [address] // Use real Stacks testnet address instead of mock
     };
 
     return NextResponse.json(response);

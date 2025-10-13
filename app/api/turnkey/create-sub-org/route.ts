@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Note: In a real implementation, we would use the correct Turnkey SDK methods
-    // For now, we'll return a mock response
+    // For now, we'll return a proper mock response
     const response = {
       subOrganizationId: `suborg-${Date.now()}`
     };

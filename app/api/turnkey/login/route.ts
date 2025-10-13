@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     // Note: In a real implementation, we would use the correct Turnkey SDK methods
-    // For now, we'll return a mock response
+    // For now, we'll return a proper mock response
     const response = {
       organizationId: `suborg-${Date.now()}`,
       userId: `user-${Date.now()}`,

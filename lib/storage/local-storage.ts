@@ -45,15 +45,23 @@ const STORAGE_KEYS = {
 
 // User operations
 export const saveUser = (user: User): void => {
+  console.log("[v0] Saving user to localStorage:", user.walletAddress)
   localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user))
 }
 
 export const getUser = (): User | null => {
   const data = localStorage.getItem(STORAGE_KEYS.USER)
-  return data ? JSON.parse(data) : null
+  if (data) {
+    const user = JSON.parse(data)
+    console.log("[v0] Retrieved user from localStorage:", user.walletAddress)
+    return user
+  }
+  console.log("[v0] No user found in localStorage")
+  return null
 }
 
 export const clearUser = (): void => {
+  console.log("[v0] Clearing user data from localStorage")
   // Clear all user-related data
   localStorage.removeItem(STORAGE_KEYS.USER)
   localStorage.removeItem(STORAGE_KEYS.POSITIONS)

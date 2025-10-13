@@ -18,6 +18,11 @@ export async function createPosition(params: {
 }): Promise<Position> {
   const { userId, userAddress, symbol, side, entryPrice, collateral, leverage, privateKey } = params
 
+  // Validate collateral amount - minimum 100 STX
+  if (collateral < 100) {
+    throw new Error("Minimum collateral requirement is 100 STX. Please increase your collateral amount.")
+  }
+
   // Calculate position details
   const size = (collateral * leverage) / entryPrice
   const liquidationPrice = calculateLiquidationPrice(entryPrice, leverage, side)

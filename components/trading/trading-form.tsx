@@ -77,6 +77,12 @@ export function TradingForm({ userId }: TradingFormProps) {
       return
     }
 
+    // Prevent depositing less than 100 STX
+    if (collateral < 100) {
+      setError("Minimum collateral requirement is 100 STX. Please increase your collateral amount.")
+      return
+    }
+
     try {
       setIsCreating(true)
       setError(null)
@@ -102,7 +108,7 @@ export function TradingForm({ userId }: TradingFormProps) {
       setSuccess("Position opened successfully!")
 
       // Reset form
-      setCollateral(100)
+      setCollateral(100) // Set to minimum allowed value
       setLeverage(10)
 
       // Reload positions
@@ -177,7 +183,7 @@ export function TradingForm({ userId }: TradingFormProps) {
               type="number"
               value={collateral}
               onChange={(e) => setCollateral(Number(e.target.value))}
-              min="1"
+              min="100"
               step="1"
               className="bg-background border-border"
             />

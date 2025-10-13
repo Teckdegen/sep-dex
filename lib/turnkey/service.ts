@@ -199,6 +199,40 @@ export async function createLocalWallet(userName: string): Promise<User> {
   }
 }
 
+// Function to import an existing wallet with a known private key
+export async function importLocalWallet(userName: string, privateKey: string): Promise<User> {
+  console.log("[v0] Importing local Stacks wallet for:", userName)
+  
+  try {
+    // Ensure private key is in the correct format (0x prefixed hex string)
+    const formattedPrivateKey = privateKey.startsWith('0x') ? privateKey : `0x${privateKey}`
+    
+    // Get the address from the private key
+    const address = getAddressFromPrivateKey(formattedPrivateKey, 'testnet')
+    
+    // Create user object with the provided wallet
+    const user: User = {
+      id: `local-user-${Date.now()}`,
+      walletAddress: address,
+      walletId: "local-wallet",
+      subOrgId: "local-wallet",
+      createdAt: new Date().toISOString(),
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('local-wallet-private-key', formattedPrivateKey)
+    localStorage.setItem('local-wallet-address', address)
+    localStorage.setItem('local-wallet-username', userName)
+    saveUser(user)
+    
+    console.log("[v0] Local Stacks wallet imported with address:", address)
+    return user
+  } catch (error) {
+    console.error("[v0] Failed to import local Stacks wallet:", error)
+    throw error
+  }
+}
+
 // Get local wallet private key
 export function getLocalWalletPrivateKey(): string | null {
   const privateKey = localStorage.getItem('local-wallet-private-key')
@@ -227,3 +261,5 @@ export function getTurnkeyWalletPrivateKey(): string | null {
   localStorage.setItem('turnkey-wallet-private-key', formattedPrivateKey)
   return formattedPrivateKey
 }
+
+

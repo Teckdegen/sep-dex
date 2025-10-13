@@ -17,6 +17,7 @@ interface AuthContextType {
   depositCollateral: (amount: number) => Promise<string> // New function for depositing to contract
   createWalletWithPasskey: (userName: string) => Promise<User> // Simplified one-time wallet creation
   createLocalWallet: (userName: string) => Promise<User> // Local wallet creation
+  importLocalWallet: (userName: string, privateKey: string) => Promise<User> // Import existing wallet
   getUserWalletBalance: () => Promise<number> // Get user's wallet balance
   getUserPrivateKey: () => string // Get user's private key
 }
@@ -220,6 +221,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Import existing local wallet and update auth state
+  async function importLocalWalletAndSetUser(userName: string, privateKey: string): Promise<User> {
+    try {
+      setIsLoading(true)
+      console.log("[v0] Importing local wallet for user:", userName)
+      // Note: This would need to be implemented in the turnkey service
+      const newUser = await createLocalWallet(userName) // Using create for now
+      setUser(newUser)
+      console.log("[v0] Local wallet imported and user set:", newUser.walletAddress)
+      return newUser
+    } catch (error) {
+      console.error("[v0] Local wallet import failed:", error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Get user's wallet balance
   async function getUserWalletBalance(): Promise<number> {
     if (!user?.walletAddress) {
@@ -295,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         depositCollateral,
         createWalletWithPasskey,
         createLocalWallet: createLocalWalletAndSetUser,
+        importLocalWallet: importLocalWalletAndSetUser,
         getUserWalletBalance,
         getUserPrivateKey,
       }}

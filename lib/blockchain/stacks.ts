@@ -297,7 +297,7 @@ export async function getStacksBalance(address: string): Promise<number> {
     }
     
     const data = await response.json()
-    console.log("[v0] Balance response:", JSON.stringify(data, null, 2))
+    console.log("[v0] Balance response for address", address, ":", JSON.stringify(data, null, 2))
     
     // Handle different response formats
     let balance = 0

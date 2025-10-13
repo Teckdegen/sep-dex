@@ -95,7 +95,7 @@ export default function LoginPage() {
               ) : (
                 <>
                   <Wallet className="mr-2 h-4 w-4" />
-                  Create New Wallet
+                  Create Wallet with Passkey
                 </>
               )}
             </Button>
@@ -120,12 +120,12 @@ export default function LoginPage() {
             {isLoggingIn ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Logging In...
+                Using Passkey...
               </>
             ) : (
               <>
                 <Key className="mr-2 h-4 w-4" />
-                Login with Passkey
+                Use Existing Passkey
               </>
             )}
           </Button>
@@ -141,6 +141,9 @@ export default function LoginPage() {
             <p className="mt-1">
               Your wallet is secured with passkey authentication. No passwords needed - just use your device's biometric
               authentication.
+            </p>
+            <p className="mt-1">
+              New users: Create a wallet with passkey. Existing users: Use your existing passkey to log in.
             </p>
           </div>
         </div>

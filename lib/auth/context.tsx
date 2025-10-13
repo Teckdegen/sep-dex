@@ -81,12 +81,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Try login with passkey
       const loginResponse = await loginWithPasskey()
+      
+      // Check if we have an existing user
       const existingUser = getUser()
 
       if (existingUser && existingUser.subOrgId === loginResponse.organizationId) {
         setUser(existingUser)
-        console.log("[v0] Login successful:", existingUser.walletAddress)
+        console.log("[v0] Login successful for existing user:", existingUser.walletAddress)
         return existingUser
+      } else if (loginResponse.organizationId) {
+        // This is a new user or user without local storage
+        // We need to get or create their wallet info
+        console.log("[v0] New user login, need to create user object")
+        // For now, we'll throw an error asking them to create a wallet
+        throw new Error("Please create a wallet first")
       }
 
       throw new Error("Login failed")
@@ -129,6 +137,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(existingUser)
           console.log("[v0] Login successful:", existingUser.walletAddress)
           return existingUser
+        } else if (loginResponse.organizationId) {
+          // This is a new user who already has a Turnkey account but no local storage
+          // We need to create a local user object for them
+          console.log("[v0] Existing Turnkey user without local storage, creating user object")
+          
+          // We would need to get their wallet info from Turnkey
+          // For now, we'll create a minimal user object and let them know they need to create a wallet
+          throw new Error("Existing Turnkey user detected. Please contact support or create a new wallet.")
         }
       } catch (loginError) {
         console.log("[v0] Login failed, creating new wallet for:", userName)

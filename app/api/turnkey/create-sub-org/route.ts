@@ -10,7 +10,25 @@ const turnkeyServer = new Turnkey({
 
 export async function POST(request: NextRequest) {
   try {
-    const { userName, credential } = await request.json()
+    let body;
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      console.error("[v0] Failed to parse request body:", parseError)
+      return NextResponse.json(
+        { error: "Invalid request body format" },
+        { status: 400 }
+      )
+    }
+
+    const { userName, credential } = body || {}
+
+    if (!userName || !credential) {
+      return NextResponse.json(
+        { error: "Missing required fields: userName and credential" },
+        { status: 400 }
+      )
+    }
 
     console.log("[v0] Creating sub-organization for:", userName)
     console.log("[v0] Credential data:", {
@@ -25,6 +43,8 @@ export async function POST(request: NextRequest) {
         {
           userName: userName,
           userEmail: `${userName}@sepdex.local`,
+          apiKeys: [],
+          oauthProviders: [],
           authenticators: [
             {
               authenticatorName: `${userName}-passkey`,

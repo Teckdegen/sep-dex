@@ -10,7 +10,25 @@ const turnkeyServer = new Turnkey({
 
 export async function POST(request: NextRequest) {
   try {
-    const { subOrgId, walletName } = await request.json()
+    let body;
+    try {
+      body = await request.json()
+    } catch (parseError) {
+      console.error("[v0] Failed to parse request body:", parseError)
+      return NextResponse.json(
+        { error: "Invalid request body format" },
+        { status: 400 }
+      )
+    }
+
+    const { subOrgId, walletName } = body || {}
+
+    if (!subOrgId) {
+      return NextResponse.json(
+        { error: "Missing required field: subOrgId" },
+        { status: 400 }
+      )
+    }
 
     console.log("[v0] Creating Stacks wallet for sub-org:", subOrgId)
 
@@ -19,10 +37,10 @@ export async function POST(request: NextRequest) {
       walletName: walletName || `stacks-wallet-${Date.now()}`,
       accounts: [
         {
-          curve: "SECP256K1",
-          pathFormat: "BIP32",
+          curve: "CURVE_SECP256K1",
+          pathFormat: "PATH_FORMAT_BIP32",
           path: "m/44'/5757'/0'/0/0", // Stacks derivation path
-          addressFormat: "UNCOMPRESSED",
+          addressFormat: "ADDRESS_FORMAT_UNCOMPRESSED",
         },
       ],
     })

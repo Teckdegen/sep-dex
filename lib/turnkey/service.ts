@@ -96,23 +96,38 @@ export async function loginWithPasskey() {
   console.log("[v0] Attempting passkey login")
 
   try {
+    // For new users, we don't require an existing user in storage
+    // We'll attempt to login and then check if we can find/create a user based on the response
     const user = getUser()
-    if (!user || !user.subOrgId) {
-      throw new Error("No user found in storage. Please create a wallet first.")
-    }
+    
+    // If we have a user, use their subOrgId, otherwise we'll need to handle it after login
+    const subOrgId = user?.subOrgId
 
-    console.log("[v0] Logging in with sub-org ID:", user.subOrgId)
+    console.log("[v0] Logging in with sub-org ID:", subOrgId || "new user")
 
-    const turnkey = getTurnkeyClient(user.subOrgId)
+    // Get Turnkey client - for new users, we'll use the parent org client first
+    const turnkey = getTurnkeyClient(subOrgId) // This will use parent org if subOrgId is undefined
     const passkeyClient = turnkey.passkeyClient()
 
     const loginResponse = await passkeyClient.login()
     console.log("[v0] Login successful:", loginResponse)
 
-    return {
-      organizationId: user.subOrgId,
-      userId: user.id,
-      user,
+    // For new users, we might need to create a user object based on the login response
+    // For existing users, we return their info
+    if (user && user.subOrgId === loginResponse.organizationId) {
+      return {
+        organizationId: user.subOrgId,
+        userId: user.id,
+        user,
+      }
+    } else {
+      // This is likely a new user or user without local storage
+      // Return the login response info so we can create a user
+      return {
+        organizationId: loginResponse.organizationId,
+        userId: loginResponse.userId,
+        user: user || null,
+      }
     }
   } catch (error) {
     console.error("[v0] Login failed:", error)

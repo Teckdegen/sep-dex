@@ -199,7 +199,7 @@ export async function createLocalWallet(userName: string): Promise<User> {
   }
 }
 
-// Function to import an existing wallet with a known private key
+// Import existing local wallet with a known private key
 export async function importLocalWallet(userName: string, privateKey: string): Promise<User> {
   console.log("[v0] Importing local Stacks wallet for:", userName)
   

@@ -8,15 +8,17 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Loader2, Wallet, Key, Lock } from "lucide-react"
+import { Loader2, Wallet, Key, Lock, Import } from "lucide-react"
 
 export default function LoginPage() {
   const [userName, setUserName] = useState("")
   const [useLocalWallet, setUseLocalWallet] = useState(false)
+  const [importWallet, setImportWallet] = useState(false)
+  const [privateKey, setPrivateKey] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { createWalletWithPasskey, loginOrCreateWallet, createLocalWallet } = useAuth()
+  const { createWalletWithPasskey, loginOrCreateWallet, createLocalWallet, importLocalWallet } = useAuth()
   const router = useRouter()
 
   const handleCreateWallet = async () => {
@@ -29,7 +31,15 @@ export default function LoginPage() {
       setIsCreating(true)
       setError(null)
       
-      if (useLocalWallet) {
+      if (importWallet) {
+        // Import existing wallet with private key
+        if (!privateKey.trim()) {
+          throw new Error("Please enter a private key to import")
+        }
+        console.log("[v0] Importing existing wallet for:", userName)
+        await importLocalWallet(userName, privateKey)
+        router.push("/trade")
+      } else if (useLocalWallet) {
         // Create a local wallet without Turnkey
         console.log("[v0] Creating local Stacks wallet for:", userName)
         await createLocalWallet(userName)
@@ -61,6 +71,17 @@ export default function LoginPage() {
       setError(err instanceof Error ? err.message : "Failed to login")
     } finally {
       setIsLoggingIn(false)
+    }
+  }
+
+  // Function to derive address from private key (for display purposes)
+  const deriveAddressFromPrivateKey = (pk: string) => {
+    try {
+      const { getAddressFromPrivateKey } = require('@stacks/transactions')
+      const formattedPrivateKey = pk.startsWith('0x') ? pk : `0x${pk}`
+      return getAddressFromPrivateKey(formattedPrivateKey, 'testnet')
+    } catch (error) {
+      return "Invalid private key"
     }
   }
 
@@ -103,7 +124,10 @@ export default function LoginPage() {
               <Checkbox 
                 id="local-wallet" 
                 checked={useLocalWallet}
-                onCheckedChange={(checked) => setUseLocalWallet(checked as boolean)}
+                onCheckedChange={(checked) => {
+                  setUseLocalWallet(checked as boolean)
+                  if (checked) setImportWallet(false)
+                }}
               />
               <Label 
                 htmlFor="local-wallet" 
@@ -112,6 +136,45 @@ export default function LoginPage() {
                 Use local wallet (no Turnkey)
               </Label>
             </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="import-wallet" 
+                checked={importWallet}
+                onCheckedChange={(checked) => {
+                  setImportWallet(checked as boolean)
+                  if (checked) setUseLocalWallet(false)
+                }}
+              />
+              <Label 
+                htmlFor="import-wallet" 
+                className="text-foreground text-sm cursor-pointer"
+              >
+                Import existing wallet
+              </Label>
+            </div>
+
+            {importWallet && (
+              <div className="space-y-2">
+                <Label htmlFor="private-key" className="text-foreground">
+                  Private Key
+                </Label>
+                <Input
+                  id="private-key"
+                  type="password"
+                  placeholder="Enter your private key"
+                  value={privateKey}
+                  onChange={(e) => setPrivateKey(e.target.value)}
+                  disabled={isCreating || isLoggingIn}
+                  className="bg-input text-foreground"
+                />
+                {privateKey && (
+                  <div className="text-xs text-muted-foreground">
+                    <p>Derived address: {deriveAddressFromPrivateKey(privateKey)}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <Button 
               onClick={handleCreateWallet} 
@@ -123,18 +186,18 @@ export default function LoginPage() {
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {useLocalWallet ? "Creating Local Wallet..." : "Creating Wallet..."}
+                  {importWallet ? "Importing Wallet..." : useLocalWallet ? "Creating Local Wallet..." : "Creating Wallet..."}
                 </>
               ) : (
                 <>
-                  <Wallet className="mr-2 h-4 w-4" />
-                  {useLocalWallet ? "Create Local Wallet" : "Create New Wallet"}
+                  {importWallet ? <Import className="mr-2 h-4 w-4" /> : <Wallet className="mr-2 h-4 w-4" />}
+                  {importWallet ? "Import Wallet" : useLocalWallet ? "Create Local Wallet" : "Create New Wallet"}
                 </>
               )}
             </Button>
           </div>
 
-          {!useLocalWallet && (
+          {!useLocalWallet && !importWallet && (
             <>
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -177,7 +240,12 @@ export default function LoginPage() {
           <div className="rounded-lg border border-border bg-muted/50 p-4 text-xs text-muted-foreground">
             <p className="font-medium text-foreground">Wallet Options:</p>
             <p className="mt-1">
-              {useLocalWallet ? (
+              {importWallet ? (
+                <>
+                  <Import className="inline h-3 w-3 mr-1" />
+                  Import wallet: Use an existing wallet with your private key
+                </>
+              ) : useLocalWallet ? (
                 <>
                   <Lock className="inline h-3 w-3 mr-1" />
                   Local wallet: Private key stored in browser. Backup your private key!
@@ -190,7 +258,9 @@ export default function LoginPage() {
               )}
             </p>
             <p className="mt-1">
-              {useLocalWallet ? (
+              {importWallet ? (
+                "Import an existing wallet using your private key. The address will be derived automatically."
+              ) : useLocalWallet ? (
                 "⚠️ Private key will be stored in browser storage. Export and backup your private key for security."
               ) : (
                 "• \"Create New Wallet\" - Register a new wallet with a new passkey\n" +

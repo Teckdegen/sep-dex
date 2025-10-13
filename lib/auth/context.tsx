@@ -226,8 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true)
       console.log("[v0] Importing local wallet for user:", userName)
-      // Note: This would need to be implemented in the turnkey service
-      const newUser = await createLocalWallet(userName) // Using create for now
+      const newUser = await importLocalWallet(userName, privateKey)
       setUser(newUser)
       console.log("[v0] Local wallet imported and user set:", newUser.walletAddress)
       return newUser

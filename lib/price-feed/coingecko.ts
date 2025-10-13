@@ -24,9 +24,10 @@ export interface PriceData {
 
 // Get current price from CoinGecko
 export async function getCurrentPrice(asset: string): Promise<number> {
-  // Check cache first (30 second cache)
-  const cached = getCachedPrice(asset, 30000)
-  if (cached) {
+  // Check cache first (60 second cache to reduce API calls)
+  const cached = getCachedPrice(asset, 60000)
+  if (cached !== null) {
+    console.log(`[v0] Using cached price for ${asset}: ${cached}`)
     return cached
   }
 
@@ -37,6 +38,7 @@ export async function getCurrentPrice(asset: string): Promise<number> {
   }
 
   try {
+    console.log(`[v0] Fetching fresh price for ${asset} from CoinGecko`)
     const response = await fetch(`${COINGECKO_API}/simple/price?ids=${coinGeckoId}&vs_currencies=usd`)
 
     if (!response.ok) {
@@ -54,6 +56,7 @@ export async function getCurrentPrice(asset: string): Promise<number> {
 
     // Cache the price
     savePriceCache(asset, price)
+    console.log(`[v0] Cached fresh price for ${asset}: ${price}`)
 
     return price
   } catch (error) {

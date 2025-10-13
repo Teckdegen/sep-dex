@@ -25,7 +25,7 @@ export function TradingForm({ userId }: TradingFormProps) {
   const [asset, setAsset] = useState<SupportedAsset>("BTC")
   const [side, setSide] = useState<PositionSide>("long")
   const [leverage, setLeverage] = useState(10)
-  const [collateral, setCollateral] = useState(1000)
+  const [collateral, setCollateral] = useState(100) // Changed from USD to STX
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -36,7 +36,7 @@ export function TradingForm({ userId }: TradingFormProps) {
     ? computePosition({
         entry: price,
         price: price,
-        collateral,
+        collateral, // Use STX amount directly
         leverage,
         direction: side,
       })
@@ -62,7 +62,7 @@ export function TradingForm({ userId }: TradingFormProps) {
 
       console.log("[v0] Creating position with collateral deposit")
 
-      // First, deposit collateral on-chain
+      // First, deposit collateral on-chain (collateral is in STX)
       const depositTxId = await depositCollateral(collateral)
       console.log("[v0] Collateral deposited:", depositTxId)
 
@@ -73,14 +73,14 @@ export function TradingForm({ userId }: TradingFormProps) {
         symbol: asset,
         side,
         entryPrice: price,
-        collateral,
+        collateral, // Store STX amount directly
         leverage,
       })
 
       setSuccess("Position opened successfully!")
 
       // Reset form
-      setCollateral(1000)
+      setCollateral(100)
       setLeverage(10)
 
       // Reload positions
@@ -146,15 +146,20 @@ export function TradingForm({ userId }: TradingFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label>Collateral (USD)</Label>
+          <Label>Collateral (STX)</Label>
           <Input
             type="number"
             value={collateral}
             onChange={(e) => setCollateral(Number(e.target.value))}
-            min="10"
-            step="10"
+            min="1"
+            step="1"
             className="bg-input"
           />
+          {price && (
+            <div className="text-sm text-muted-foreground">
+              Value: ${(collateral * price).toFixed(2)} USD
+            </div>
+          )}
         </div>
 
         {preview && (

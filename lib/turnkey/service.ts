@@ -2,6 +2,7 @@
 
 import { getTurnkeyClient } from "./client"
 import { saveUser, getUser, type User } from "../storage/local-storage"
+import { randomPrivateKey, privateKeyToPublic, getAddressFromPrivateKey } from '@stacks/transactions'
 
 export interface TurnkeyUser {
   id: string
@@ -129,23 +130,28 @@ export async function createLocalWallet(userName: string): Promise<User> {
   console.log("[v0] Creating local Stacks wallet for:", userName)
   
   try {
-    // Since we're having issues with the Stacks imports, let's use a simple approach
-    // In a real implementation, we would properly generate Stacks keys using Stacks.js
+    // Generate a new Stacks private key
+    const privateKey = randomPrivateKey()
+    const publicKey = privateKeyToPublic(privateKey)
+    const address = getAddressFromPrivateKey(privateKey, 'testnet')
     
-    // Create user object with a mock address
+    // Create user object with real Stacks address
     const user: User = {
       id: `local-user-${Date.now()}`,
-      walletAddress: `SP${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`, // Mock Stacks address
+      walletAddress: address,
       walletId: "local-wallet",
       subOrgId: "local-wallet",
       createdAt: new Date().toISOString(),
     }
     
     // Save to localStorage
+    localStorage.setItem('local-wallet-private-key', privateKey)
+    localStorage.setItem('local-wallet-public-key', publicKey as string)
+    localStorage.setItem('local-wallet-address', address)
     localStorage.setItem('local-wallet-username', userName)
     saveUser(user)
     
-    console.log("[v0] Local Stacks wallet created with address:", user.walletAddress)
+    console.log("[v0] Local Stacks wallet created with address:", address)
     return user
   } catch (error) {
     console.error("[v0] Failed to create local Stacks wallet:", error)

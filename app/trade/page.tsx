@@ -1,21 +1,24 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { useAllPrices } from "@/lib/price-feed/hooks"
 import { usePositions } from "@/lib/trading/hooks"
-import { Loader2, LogOut, Wallet } from "lucide-react"
+import { Loader2, LogOut, Wallet, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TradingForm } from "@/components/trading/trading-form"
 import { PositionCard } from "@/components/trading/position-card"
 import { PriceCard } from "@/components/trading/price-card"
+import { PriceChart } from "@/components/trading/price-chart"
+import type { SupportedAsset } from "@/lib/price-feed/types"
 
 export default function TradePage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices()
   const { positions, isLoading: positionsLoading, error: positionsError } = usePositions()
   const router = useRouter()
+  const [selectedAsset, setSelectedAsset] = useState<SupportedAsset>("BTC")
 
   useEffect(() => {
     console.log("[v0] Trade page - auth state:", { user, isAuthenticated, isLoading })
@@ -62,25 +65,38 @@ export default function TradePage() {
 
       <div className="container mx-auto p-4">
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left Column - Prices */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Live Prices</h2>
-            {pricesLoading ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : pricesError ? (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-                Failed to load prices: {pricesError}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {prices &&
-                  Object.entries(prices).map(([symbol, price]) => (
-                    <PriceCard key={symbol} symbol={symbol as any} price={price} />
-                  ))}
-              </div>
-            )}
+          {/* Left Column - Prices and Chart */}
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-foreground">Live Prices</h2>
+              {pricesLoading ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : pricesError ? (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                  Failed to load prices: {pricesError}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {prices &&
+                    Object.entries(prices).map(([symbol, price]) => (
+                      <div key={symbol} onClick={() => setSelectedAsset(symbol as SupportedAsset)} className="cursor-pointer">
+                        <PriceCard symbol={symbol as any} price={price} />
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Price Chart */}
+            <div>
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+                <TrendingUp className="h-5 w-5" />
+                {selectedAsset} Price Chart
+              </h2>
+              <PriceChart symbol={selectedAsset} />
+            </div>
           </div>
 
           {/* Middle Column - Trading Form */}

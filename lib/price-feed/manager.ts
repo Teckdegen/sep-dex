@@ -2,7 +2,7 @@ import { ASSET_TO_COINGECKO_ID, type SupportedAsset, type CachedPrice } from "./
 
 class PriceFeedManager {
   private memoryCache: Map<SupportedAsset, CachedPrice> = new Map()
-  private readonly MEMORY_CACHE_DURATION = 2000 // 2 seconds
+  private readonly MEMORY_CACHE_DURATION = 60000 // 60 seconds
 
   async getPrice(asset: SupportedAsset): Promise<number> {
     // Level 1: Memory cache (fastest)
@@ -32,35 +32,9 @@ class PriceFeedManager {
   }
 
   private async fetchFromCoinGecko(asset: SupportedAsset): Promise<number> {
-    const coinGeckoId = ASSET_TO_COINGECKO_ID[asset]
-
-    try {
-      const response = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckoId}&vs_currencies=usd`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
-        },
-      )
-
-      if (!response.ok) {
-        throw new Error(`CoinGecko API error: ${response.status}`)
-      }
-
-      const data = await response.json()
-      const price = data[coinGeckoId]?.usd
-
-      if (!price) {
-        throw new Error(`Price not found for ${asset}`)
-      }
-
-      return price
-    } catch (error) {
-      console.error("[v0] CoinGecko fetch failed:", error)
-      // Return a default price instead of throwing an error to prevent the UI from breaking
-      return 0
-    }
+    // Use the existing CoinGecko implementation with proper caching
+    const { getCurrentPrice } = await import('./coingecko')
+    return getCurrentPrice(asset)
   }
 
   private updateMemoryCache(asset: SupportedAsset, price: number): void {

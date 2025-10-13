@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { getUser, clearUser, type User } from "../storage/local-storage"
-import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage, createLocalWallet } from "../turnkey/service"
+import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage, createLocalWallet, getLocalWalletPrivateKey } from "../turnkey/service"
 import { depositStx } from "../stacks-client" // Import Stacks client
 
 interface AuthContextType {
@@ -114,9 +114,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      // Check if this is a local wallet
+      const isLocalWallet = user.subOrgId === "local-wallet"
+      let privateKey = process.env.ADMIN_PRIVATE_KEY!
+
+      if (isLocalWallet) {
+        // For local wallets, get the private key from localStorage
+        const localPrivateKey = getLocalWalletPrivateKey()
+        if (localPrivateKey) {
+          // Ensure private key has the correct format for Stacks
+          privateKey = localPrivateKey.startsWith('0x') ? localPrivateKey : `0x${localPrivateKey}`
+        } else {
+          throw new Error("Local wallet private key not found")
+        }
+      }
+
       // Use Turnkey to sign the deposit transaction
       // Note: This assumes Turnkey SDK supports Stacks signing - adjust as needed
-      const txId = await depositStx(amount, user.walletAddress, process.env.ADMIN_PRIVATE_KEY!) // For now, using admin key; integrate proper signing
+      const txId = await depositStx(amount, user.walletAddress, privateKey)
       console.log("[v0] Collateral deposited:", txId)
       return txId
     } catch (error) {

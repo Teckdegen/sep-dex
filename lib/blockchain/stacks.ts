@@ -272,7 +272,7 @@ export async function getTransactionStatus(txId: string): Promise<string> {
 // Get actual Stacks wallet balance (not contract balance)
 export async function getStacksBalance(address: string): Promise<number> {
   try {
-    console.log("[v0] Fetching Stacks balance for address using Stacks.js:", address)
+    console.log("[v0] Fetching Stacks balance for address using Stacks testnet API:", address)
     
     // Validate address
     if (!address || address.length < 20) {
@@ -280,40 +280,49 @@ export async function getStacksBalance(address: string): Promise<number> {
       return 0
     }
     
-    // Use Stacks.js library for balance checking
-    // Add timestamp to URL to prevent caching
-    const timestamp = Date.now();
-    const url = `https://stacks-node-api.testnet.stacks.co/v2/accounts/${address}?proof=0&_=${timestamp}`;
+    // Use Stacks testnet API for balance checking with cache busting
+    const timestamp = new Date().getTime();
+    const url = `${STACKS_TESTNET.client.baseUrl}/v2/accounts/${address}?proof=0&tip=latest&_=${timestamp}`
     
-    console.log("[v0] Fetching from Stacks.js URL:", url);
+    console.log("[v0] Fetching from Stacks testnet API URL:", url)
     
-    // Add cache-busting headers
+    // Fetch balance with proper headers to prevent caching
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'Accept': 'application/json',
       }
-    });
+    })
     
-    console.log("[v0] Response status:", response.status, response.statusText);
+    console.log("[v0] Response status:", response.status, response.statusText)
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch balance: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch balance: ${response.status} ${response.statusText}`)
     }
     
-    const data = await response.json();
-    console.log("[v0] Balance response for address", address, ":", JSON.stringify(data, null, 2));
+    const data = await response.json()
+    console.log("[v0] Balance response for address", address, ":", JSON.stringify(data, null, 2))
     
     // The balance is returned as a string in microSTX, convert to number
-    const balance = data.balance ? Number(data.balance) : 0;
+    // Handle both balance and stx.balance formats
+    let balance = 0
+    if (data.balance) {
+      balance = Number(data.balance)
+    } else if (data.stx && data.stx.balance) {
+      balance = Number(data.stx.balance)
+    } else if (data.stx && data.stx.balance && data.stx.balance.amount) {
+      // Additional format handling
+      balance = Number(data.stx.balance.amount)
+    }
     
-    console.log("[v0] Raw balance (microSTX):", balance);
-    console.log("[v0] Converted balance (STX):", balance / 1_000_000);
-    return balance;
+    console.log("[v0] Raw balance (microSTX):", balance)
+    console.log("[v0] Converted balance (STX):", balance / 1_000_000)
+    return balance / 1_000_000 // Return balance in STX, not microSTX
   } catch (error) {
-    console.error("[v0] Failed to get Stacks balance using Stacks.js:", error);
-    return 0;
+    console.error("[v0] Failed to get Stacks balance using Stacks testnet API:", error)
+    return 0
   }
 }

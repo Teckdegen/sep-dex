@@ -41,8 +41,9 @@ export default function LoginPage() {
     try {
       setIsLoggingIn(true)
       setError(null)
-      console.log("[v0] Logging in with passkey")
-      await loginOrCreateWallet(userName || "User")
+      console.log("[v0] Attempting passkey login")
+      // This will try to use existing passkey, and create new if needed
+      await loginOrCreateWallet(userName)
       router.push("/trade")
     } catch (err) {
       console.error("[v0] Login error:", err)
@@ -95,7 +96,7 @@ export default function LoginPage() {
               ) : (
                 <>
                   <Wallet className="mr-2 h-4 w-4" />
-                  Create Wallet with Passkey
+                  Create New Wallet
                 </>
               )}
             </Button>
@@ -125,7 +126,7 @@ export default function LoginPage() {
             ) : (
               <>
                 <Key className="mr-2 h-4 w-4" />
-                Use Existing Passkey
+                Use Passkey (Existing/New)
               </>
             )}
           </Button>
@@ -143,7 +144,9 @@ export default function LoginPage() {
               authentication.
             </p>
             <p className="mt-1">
-              New users: Create a wallet with passkey. Existing users: Use your existing passkey to log in.
+              • "Create New Wallet" - Register a new wallet with a new passkey
+              <br />
+              • "Use Passkey" - Use an existing passkey or automatically create a new one
             </p>
           </div>
         </div>

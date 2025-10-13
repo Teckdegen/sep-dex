@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate credential fields
+    if (!credential.credentialId || !credential.clientDataJson || !credential.attestationObject) {
+      return NextResponse.json(
+        { error: "Missing required credential fields" },
+        { status: 400 }
+      )
+    }
+
     console.log("[v0] Creating sub-organization for:", userName)
     console.log("[v0] Credential data:", {
       credentialId: credential.credentialId,
@@ -48,7 +56,7 @@ export async function POST(request: NextRequest) {
           authenticators: [
             {
               authenticatorName: `${userName}-passkey`,
-              challenge: credential.encodedChallenge,
+              challenge: credential.encodedChallenge || "", // Handle case where encodedChallenge might be undefined
               attestation: {
                 credentialId: credential.credentialId,
                 clientDataJson: credential.clientDataJson,

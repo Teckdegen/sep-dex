@@ -33,9 +33,25 @@ export async function createUserSubOrg(userName: string) {
 
     console.log("[v0] Passkey created successfully:", credential)
 
-    // Parse clientDataJson directly as it's already decoded
-    const clientData = JSON.parse(credential.clientDataJson)
-    const encodedChallenge = clientData.challenge
+    // Safely parse clientDataJson - check if it exists and is valid
+    let clientData;
+    let encodedChallenge;
+    
+    if (credential.clientDataJson && typeof credential.clientDataJson === 'string') {
+      try {
+        clientData = JSON.parse(credential.clientDataJson);
+        encodedChallenge = clientData.challenge;
+      } catch (parseError) {
+        console.error("[v0] Failed to parse clientDataJson:", parseError);
+        // If parsing fails, we'll send the raw clientDataJson and let the server handle it
+        clientData = null;
+        encodedChallenge = null;
+      }
+    } else {
+      console.warn("[v0] clientDataJson is missing or invalid");
+      clientData = null;
+      encodedChallenge = null;
+    }
 
     const response = await fetch("/api/turnkey/create-sub-org", {
       method: "POST",

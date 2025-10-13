@@ -27,6 +27,7 @@ export default function LoginPage() {
       setIsCreating(true)
       setError(null)
       console.log("[v0] Creating Turnkey wallet with passkey for:", userName)
+      // Ensure this is called directly from user interaction
       await createWalletWithPasskey(userName)
       router.push("/trade")
     } catch (err) {
@@ -42,7 +43,7 @@ export default function LoginPage() {
       setIsLoggingIn(true)
       setError(null)
       console.log("[v0] Attempting passkey login")
-      // This will try to use existing passkey, and create new if needed
+      // Ensure this is called directly from user interaction
       await loginOrCreateWallet(userName)
       router.push("/trade")
     } catch (err) {
@@ -81,13 +82,20 @@ export default function LoginPage() {
                 className="bg-input text-foreground"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !isCreating && !isLoggingIn) {
+                    // Ensure this is called directly from user interaction
                     handleCreateWallet()
                   }
                 }}
               />
             </div>
 
-            <Button onClick={handleCreateWallet} disabled={isCreating || isLoggingIn} className="w-full" size="lg">
+            <Button 
+              onClick={handleCreateWallet} 
+              disabled={isCreating || isLoggingIn} 
+              className="w-full" 
+              size="lg"
+              type="button"
+            >
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -117,6 +125,7 @@ export default function LoginPage() {
             variant="outline"
             className="w-full bg-transparent"
             size="lg"
+            type="button"
           >
             {isLoggingIn ? (
               <>

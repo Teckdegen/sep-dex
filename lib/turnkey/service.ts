@@ -18,6 +18,9 @@ export async function createUserSubOrg(userName: string) {
   console.log("[v0] Creating passkey for:", userName)
 
   try {
+    // Small delay to ensure proper user activation context
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Create passkey credential
     const credential = await passkeyClient.createUserPasskey({
       publicKey: {
@@ -112,6 +115,9 @@ export async function loginWithPasskey() {
   console.log("[v0] Attempting passkey login")
 
   try {
+    // Small delay to ensure proper user activation context
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // For new users, we don't require an existing user in storage
     // We'll attempt to login and then check if we can find/create a user based on the response
     const user = getUser()

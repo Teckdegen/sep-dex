@@ -1,4 +1,4 @@
-import { ASSET_TO_COINGECKO_ID, type SupportedAsset, type CachedPrice } from "./types"
+import { type SupportedAsset, type CachedPrice } from "./types"
 
 class PriceFeedManager {
   private memoryCache: Map<SupportedAsset, CachedPrice> = new Map()
@@ -11,8 +11,8 @@ class PriceFeedManager {
       return memoryPrice
     }
 
-    // Level 2: Fetch from CoinGecko
-    const freshPrice = await this.fetchFromCoinGecko(asset)
+    // Level 2: Fetch from updated price feed (Binance primary, CoinGecko backup)
+    const freshPrice = await this.fetchFromPriceFeed(asset)
     this.updateMemoryCache(asset, freshPrice)
 
     return freshPrice
@@ -31,8 +31,8 @@ class PriceFeedManager {
     return cached.price
   }
 
-  private async fetchFromCoinGecko(asset: SupportedAsset): Promise<number> {
-    // Use the existing CoinGecko implementation with proper caching
+  private async fetchFromPriceFeed(asset: SupportedAsset): Promise<number> {
+    // Use the updated price feed implementation with Binance as primary source
     const { getCurrentPrice } = await import('./coingecko')
     return getCurrentPrice(asset)
   }

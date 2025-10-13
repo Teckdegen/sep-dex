@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { getUser, clearUser, type User } from "../storage/local-storage"
-import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage } from "../turnkey/service"
+import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage, createLocalWallet } from "../turnkey/service"
 import { depositStx } from "../stacks-client" // Import Stacks client
 
 interface AuthContextType {
@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => void
   depositCollateral: (amount: number) => Promise<string> // New function for depositing to contract
   createWalletWithPasskey: (userName: string) => Promise<User> // Simplified one-time wallet creation
+  createLocalWallet: (userName: string) => Promise<User> // Local wallet creation
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -47,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true)
       console.log("[v0] Creating Turnkey wallet with passkey for:", userName)
 
-      // Create sub-organization with passkey (this creates the sub-org in one step)
+      // Create sub-organization with passkey (this creates the passkey and sub-org in one step)
       const subOrgResponse = await createUserSubOrg(userName)
       const subOrgId = subOrgResponse.subOrganizationId
 
@@ -176,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         depositCollateral,
         createWalletWithPasskey,
+        createLocalWallet,
       }}
     >
       {children}

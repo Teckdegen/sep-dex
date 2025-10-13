@@ -18,7 +18,6 @@ export function getTurnkeyClient(organizationId?: string) {
     return new Turnkey({
       apiBaseUrl: "https://api.turnkey.com",
       defaultOrganizationId: organizationId,
-      stamper,
     })
   }
 
@@ -30,7 +29,6 @@ export function getTurnkeyClient(organizationId?: string) {
   parentTurnkeyClient = new Turnkey({
     apiBaseUrl: "https://api.turnkey.com",
     defaultOrganizationId: process.env.NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID!,
-    stamper,
   })
 
   return parentTurnkeyClient

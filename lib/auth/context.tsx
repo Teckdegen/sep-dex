@@ -266,9 +266,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    // Clear all user-related data from localStorage
+    localStorage.removeItem('local-wallet-private-key')
+    localStorage.removeItem('local-wallet-public-key')
+    localStorage.removeItem('local-wallet-address')
+    localStorage.removeItem('local-wallet-username')
+    localStorage.removeItem('turnkey-wallet-private-key')
+    localStorage.removeItem('sep-dex-user')
+    localStorage.removeItem('sep-dex-positions')
+    localStorage.removeItem('sep-dex-transactions')
+    
     setUser(null)
-    clearUser()
-    console.log("[v0] User logged out")
+    console.log("[v0] User logged out and all data cleared")
   }
 
   console.log("[v0] AuthProvider state:", { user, isLoading, isAuthenticated: !!user })

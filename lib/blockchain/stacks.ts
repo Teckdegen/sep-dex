@@ -273,14 +273,43 @@ export async function sendStx(amount: number, recipient: string, senderKey: stri
 export async function getStacksBalance(address: string): Promise<number> {
   try {
     console.log("[v0] Fetching Stacks balance for address:", address)
+    
+    // Add a small delay to ensure any recent transactions are processed
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
     const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/address/${address}/balances`)
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch balance: ${response.status} ${response.statusText}`)
+    }
+    
     const data = await response.json()
     console.log("[v0] Balance response:", data)
-    const balance = data.stx.balance ? Number(data.stx.balance) : 0
+    
+    // Handle different response formats
+    let balance = 0
+    if (data.stx && data.stx.balance) {
+      balance = Number(data.stx.balance)
+    } else if (data.balance) {
+      balance = Number(data.balance)
+    }
+    
     console.log("[v0] Returning balance:", balance)
     return balance
   } catch (error) {
     console.error("[v0] Failed to get Stacks balance:", error)
+    // Try alternative endpoint
+    try {
+      const response = await fetch(`https://stacks-node-api.testnet.stacks.co/v2/accounts/${address}?proof=0`)
+      if (response.ok) {
+        const data = await response.json()
+        const balance = data.balance ? Number(data.balance) : 0
+        console.log("[v0] Alternative endpoint balance:", balance)
+        return balance
+      }
+    } catch (altError) {
+      console.error("[v0] Alternative endpoint also failed:", altError)
+    }
     return 0
   }
 }

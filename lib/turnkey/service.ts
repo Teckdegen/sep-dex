@@ -1,6 +1,6 @@
 "use client"
 
-import { getTurnkeyClient } from "./client"
+import { getTurnkeyClient, getStamper } from "./client"
 import { saveUser, getUser, type User } from "../storage/local-storage"
 import { randomPrivateKey, privateKeyToPublic, getAddressFromPrivateKey } from '@stacks/transactions'
 
@@ -17,14 +17,31 @@ export async function createUserSubOrg(userName: string) {
   const turnkey = getTurnkeyClient() // Use parent org client
 
   try {
-    // Small delay to ensure proper user activation context
-    await new Promise(resolve => setTimeout(resolve, 100))
-
     // Create sub-organization with passkey
-    // Note: In a real implementation, we would use the correct Turnkey SDK methods
-    // For now, we'll return a mock response
     console.log("[v0] Creating sub-organization for user:", userName)
-    return { subOrganizationId: `suborg-${Date.now()}` }
+    
+    const stamper = getStamper()
+    const publicKey = stamper.credential.publicKey
+    
+    const response = await turnkey.createSubOrganization({
+      subOrganizationName: `${userName}'s Organization`,
+      rootQuorumThreshold: 1,
+      rootUsers: [
+        {
+          userName: `${userName}'s User`,
+          apiKeys: [],
+          authenticators: [
+            {
+              publicKey,
+              signature: "", // Will be signed by the stamper
+              challenge: ""  // Will be provided by the server
+            }
+          ]
+        }
+      ]
+    })
+
+    return { subOrganizationId: response.subOrganizationId }
   } catch (error) {
     console.error("[v0] Sub-organization creation failed:", error)
     throw error
@@ -39,12 +56,26 @@ export async function createStacksWallet(subOrgId: string, walletName: string) {
   console.log("[v0] Creating Stacks wallet for sub-org:", subOrgId)
 
   try {
-    // Note: In a real implementation, we would use the correct Turnkey SDK methods
-    // For now, we'll return a mock response
-    console.log("[v0] Creating Stacks wallet:", walletName)
+    // Create a Stacks wallet using Turnkey
+    const response = await turnkey.createWallet({
+      walletName: walletName,
+      accounts: [
+        {
+          curve: "STACKS",
+          pathFormat: "bip32",
+          path: "m/44'/5757'/0'/0/0", // Standard Stacks derivation path
+          addressFormat: "stacks"
+        }
+      ]
+    })
+
+    // Get the wallet address
+    const wallet = await turnkey.getWallet({ walletId: response.walletId })
+    const address = wallet.addresses[0]
+
     return {
-      walletId: `wallet-${Date.now()}`,
-      addresses: [`address-${Date.now()}`]
+      walletId: response.walletId,
+      addresses: [address]
     }
   } catch (error) {
     console.error("[v0] Wallet creation failed:", error)
@@ -56,25 +87,16 @@ export async function loginWithPasskey() {
   console.log("[v0] Attempting passkey login")
 
   try {
-    // Small delay to ensure proper user activation context
-    await new Promise(resolve => setTimeout(resolve, 100))
+    const turnkey = getTurnkeyClient()
     
-    // For new users, we don't require an existing user in storage
-    // We'll attempt to login and then check if we can find/create a user based on the response
-    const user = getUser()
+    // Perform passkey authentication
+    const response = await turnkey.loginWithPasskey()
     
-    // If we have a user, use their subOrgId, otherwise we'll need to handle it after login
-    const subOrgId = user?.subOrgId
-
-    console.log("[v0] Logging in with sub-org ID:", subOrgId || "new user")
-
-    // Note: In a real implementation, we would use the correct Turnkey SDK methods
-    // For now, we'll return a mock response
     console.log("[v0] Login successful")
     return {
-      organizationId: subOrgId || `suborg-${Date.now()}`,
-      userId: user?.id || `user-${Date.now()}`,
-      user,
+      organizationId: response.organizationId,
+      userId: response.userId,
+      user: response.user,
     }
   } catch (error) {
     console.error("[v0] Login failed:", error)
@@ -89,11 +111,15 @@ export async function signTransaction(walletId: string, payload: string, organiz
   console.log("[v0] Signing transaction with wallet:", walletId)
 
   try {
-    // Note: In a real implementation, we would use the correct Turnkey SDK methods
-    // For now, we'll return a mock response
-    console.log("[v0] Transaction signed")
+    // Sign the transaction using Turnkey
+    const response = await turnkey.signTransaction({
+      walletId,
+      payload,
+      encoding: "utf-8"
+    })
+
     return {
-      signature: `signature-${Date.now()}`
+      signature: response.signature
     }
   } catch (error) {
     console.error("[v0] Transaction signing failed:", error)

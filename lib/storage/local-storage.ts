@@ -54,7 +54,16 @@ export const getUser = (): User | null => {
 }
 
 export const clearUser = (): void => {
+  // Clear all user-related data
   localStorage.removeItem(STORAGE_KEYS.USER)
+  localStorage.removeItem(STORAGE_KEYS.POSITIONS)
+  localStorage.removeItem(STORAGE_KEYS.TRANSACTIONS)
+  // Clear wallet-specific data
+  localStorage.removeItem('local-wallet-private-key')
+  localStorage.removeItem('local-wallet-public-key')
+  localStorage.removeItem('local-wallet-address')
+  localStorage.removeItem('local-wallet-username')
+  localStorage.removeItem('turnkey-wallet-private-key')
 }
 
 // Position operations

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { usePositions } from "@/lib/trading/hooks"
+import { checkLiquidations } from "@/lib/trading/position-manager" // Import checkLiquidations
+import { useAllPrices } from "@/lib/price-feed/hooks" // Import useAllPrices
 import { Loader2, LogOut, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PositionCard } from "@/components/trading/position-card"
@@ -12,6 +14,7 @@ import { getStacksBalance } from "@/lib/blockchain/stacks"
 export default function PositionsPage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { positions, isLoading: positionsLoading, error: positionsError } = usePositions()
+  const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices() // Get current prices
   const router = useRouter()
   const [walletBalance, setWalletBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
@@ -33,6 +36,32 @@ export default function PositionsPage() {
       return () => clearInterval(balanceInterval)
     }
   }, [user])
+
+  // Add effect for checking liquidations every 30 seconds
+  useEffect(() => {
+    if (!user?.id || !prices) return;
+
+    const checkForLiquidations = async () => {
+      try {
+        // Get admin private key from environment variables
+        const adminPrivateKey = process.env.NEXT_PUBLIC_ADMIN_PRIVATE_KEY || '';
+        
+        // Check for liquidations (cast prices to the expected type)
+        await checkLiquidations(user.id, prices as Record<string, number>, adminPrivateKey);
+      } catch (error) {
+        console.error("[v0] Error checking liquidations:", error);
+      }
+    };
+
+    // Initial check
+    checkForLiquidations();
+
+    // Set up interval to check every 30 seconds
+    const liquidationInterval = setInterval(checkForLiquidations, 30000);
+
+    // Clean up interval on component unmount
+    return () => clearInterval(liquidationInterval);
+  }, [user, prices]);
 
   async function loadWalletBalance() {
     if (!user?.walletAddress) return
@@ -98,13 +127,13 @@ export default function PositionsPage() {
           <h2 className="text-xl font-semibold text-foreground">Open Positions</h2>
         </div>
 
-        {positionsLoading ? (
+        {positionsLoading || pricesLoading ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : positionsError ? (
+        ) : positionsError || pricesError ? (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-            Failed to load positions: {positionsError}
+            Failed to load positions: {positionsError || pricesError}
           </div>
         ) : positions.length === 0 ? (
           <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground">

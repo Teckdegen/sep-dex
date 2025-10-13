@@ -20,9 +20,11 @@ export function usePositions() {
       return
     }
 
+    const userId = user.id; // Extract to a const to satisfy TypeScript
+
     async function fetchPositions() {
       try {
-        const storedPositions = getUserPositions(user.id).filter((p: StoredPosition) => p.status === "open")
+        const storedPositions = getUserPositions(userId).filter((p: StoredPosition) => p.status === "open")
         // Map StoredPosition to Position type
         const formattedPositions = storedPositions.map((pos: StoredPosition) => ({
           id: pos.id,
@@ -51,10 +53,10 @@ export function usePositions() {
     }
 
     fetchPositions()
-    const interval = setInterval(fetchPositions, 5000) // Refresh every 5 seconds
+    const interval = setInterval(fetchPositions, 30000) // Refresh every 30 seconds
 
     return () => clearInterval(interval)
-  }, [user])
+  }, [user?.id]) // Use user?.id to properly handle null case
 
   return { positions, isLoading, error }
 }
@@ -65,18 +67,25 @@ export function usePositionPnL(position: Position | null) {
   const [isLiquidated, setIsLiquidated] = useState(false)
 
   useEffect(() => {
-    if (!position) return
+    // Extract values to consts to satisfy TypeScript
+    if (!position) return;
+    
+    const symbol = position.symbol;
+    const entryPrice = position.entry_price;
+    const collateral = position.collateral;
+    const leverage = position.leverage;
+    const side = position.side;
 
     async function updatePnL() {
       try {
-        const currentPrice = await getCurrentPrice(position.symbol)
+        const currentPrice = await getCurrentPrice(symbol)
 
         const result = computePosition({
-          entry: position.entry_price,
+          entry: entryPrice,
           price: currentPrice,
-          collateral: position.collateral,
-          leverage: position.leverage,
-          direction: position.side,
+          collateral: collateral,
+          leverage: leverage,
+          direction: side,
         })
 
         setPnl(result.pnl)
@@ -92,10 +101,10 @@ export function usePositionPnL(position: Position | null) {
     }
 
     updatePnL()
-    const interval = setInterval(updatePnL, 2000) // Update every 2 seconds
+    const interval = setInterval(updatePnL, 30000) // Update every 30 seconds
 
     return () => clearInterval(interval)
-  }, [position])
+  }, [position?.symbol, position?.entry_price, position?.collateral, position?.leverage, position?.side]) // Properly handle null case
 
   return { pnl, pnlPercent, isLiquidated }
 }

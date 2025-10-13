@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { useAllPrices } from "@/lib/price-feed/hooks"
+import { checkLiquidations } from "@/lib/trading/position-manager" // Import checkLiquidations
 import { Loader2, LogOut, Wallet, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TradingForm } from "@/components/trading/trading-form"
@@ -39,6 +40,32 @@ export default function TradePage() {
       return () => clearInterval(balanceInterval)
     }
   }, [user])
+
+  // Add effect for checking liquidations every 30 seconds
+  useEffect(() => {
+    if (!user?.id || !prices) return;
+
+    const checkForLiquidations = async () => {
+      try {
+        // Get admin private key from environment variables
+        const adminPrivateKey = process.env.NEXT_PUBLIC_ADMIN_PRIVATE_KEY || '';
+        
+        // Check for liquidations (cast prices to the expected type)
+        await checkLiquidations(user.id, prices as Record<string, number>, adminPrivateKey);
+      } catch (error) {
+        console.error("[v0] Error checking liquidations:", error);
+      }
+    };
+
+    // Initial check
+    checkForLiquidations();
+
+    // Set up interval to check every 30 seconds
+    const liquidationInterval = setInterval(checkForLiquidations, 30000);
+
+    // Clean up interval on component unmount
+    return () => clearInterval(liquidationInterval);
+  }, [user, prices]);
 
   async function loadWalletBalance() {
     if (!user?.walletAddress) return

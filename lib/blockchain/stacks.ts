@@ -281,11 +281,21 @@ export async function getStacksBalance(address: string): Promise<number> {
     }
     
     // Use Stacks.js library for balance checking
-    const url = `https://stacks-node-api.testnet.stacks.co/v2/accounts/${address}?proof=0`;
+    // Add timestamp to URL to prevent caching
+    const timestamp = Date.now();
+    const url = `https://stacks-node-api.testnet.stacks.co/v2/accounts/${address}?proof=0&_=${timestamp}`;
     
     console.log("[v0] Fetching from Stacks.js URL:", url);
     
-    const response = await fetch(url);
+    // Add cache-busting headers
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
     
     console.log("[v0] Response status:", response.status, response.statusText);
     

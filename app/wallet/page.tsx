@@ -53,17 +53,21 @@ export default function WalletPage() {
           const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/tx/${lastTxId}`)
           const data = await response.json()
           
+          console.log("[v0] Transaction status:", data.tx_status)
+          
           if (data.tx_status === 'success') {
             // Transaction confirmed, refresh balance
-            await loadBalance()
+            console.log("[v0] Transaction confirmed, refreshing balance")
+            await forceRefreshBalance()
             setLastTxId(null)
           } else if (data.tx_status === 'abort_by_response' || data.tx_status === 'abort_by_post_condition') {
             // Transaction failed, stop checking
+            console.log("[v0] Transaction failed, stopping monitoring")
             setLastTxId(null)
           }
           // For pending status, we'll check again
         } catch (error) {
-          console.error("Failed to check transaction status:", error)
+          console.error("[v0] Failed to check transaction status:", error)
         }
       }
       
@@ -72,9 +76,12 @@ export default function WalletPage() {
       
       // Clean up interval after 2 minutes (maximum wait time)
       const timeout = setTimeout(() => {
+        console.log("[v0] Transaction monitoring timeout, forcing balance refresh")
         clearInterval(txInterval)
         clearTimeout(timeout)
         setLastTxId(null)
+        // Force a balance refresh even if we didn't get confirmation
+        forceRefreshBalance()
       }, 120000)
       
       return () => {
@@ -104,6 +111,13 @@ export default function WalletPage() {
     } finally {
       setIsLoadingBalance(false)
     }
+  }
+
+  // Add a force refresh function
+  async function forceRefreshBalance() {
+    // Add a small delay to ensure any pending transactions are processed
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    await loadBalance()
   }
 
   function copyAddress() {
@@ -150,8 +164,8 @@ export default function WalletPage() {
       setAmount("")
       setLastTxId(txId) // Track transaction to monitor status
       
-      // Reload balance immediately after successful transfer
-      await loadBalance()
+      // Instead of immediately reloading balance, wait for transaction confirmation
+      // The useEffect for lastTxId will handle balance updates
     } catch (err) {
       console.error("[v0] Transfer failed:", err)
       setError(err instanceof Error ? err.message : "Transfer failed")
@@ -209,7 +223,7 @@ export default function WalletPage() {
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        onClick={loadBalance}
+                        onClick={forceRefreshBalance}
                         disabled={isLoadingBalance}
                       >
                         <RefreshCw className={`h-4 w-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />

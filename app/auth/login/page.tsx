@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [isCreating, setIsCreating] = useState(false)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { createWallet, login } = useAuth()
+  const { createWalletWithPasskey, loginOrCreateWallet } = useAuth()
   const router = useRouter()
 
   const handleCreateWallet = async () => {
@@ -26,8 +26,8 @@ export default function LoginPage() {
     try {
       setIsCreating(true)
       setError(null)
-      console.log("[v0] Creating Turnkey wallet for:", userName)
-      await createWallet(userName)
+      console.log("[v0] Creating Turnkey wallet with passkey for:", userName)
+      await createWalletWithPasskey(userName)
       router.push("/trade")
     } catch (err) {
       console.error("[v0] Wallet creation error:", err)
@@ -42,7 +42,7 @@ export default function LoginPage() {
       setIsLoggingIn(true)
       setError(null)
       console.log("[v0] Logging in with passkey")
-      await login()
+      await loginOrCreateWallet(userName || "User")
       router.push("/trade")
     } catch (err) {
       console.error("[v0] Login error:", err)

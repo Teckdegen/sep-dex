@@ -33,7 +33,8 @@ export async function createUserSubOrg(userName: string) {
 
     console.log("[v0] Passkey created successfully:", credential)
 
-    const clientData = JSON.parse(atob(credential.clientDataJson))
+    // Parse clientDataJson directly as it's already decoded
+    const clientData = JSON.parse(credential.clientDataJson)
     const encodedChallenge = clientData.challenge
 
     const response = await fetch("/api/turnkey/create-sub-org", {

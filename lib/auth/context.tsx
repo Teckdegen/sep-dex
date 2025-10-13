@@ -14,6 +14,7 @@ interface AuthContextType {
   loginOrCreateWallet: (userName: string) => Promise<User> // New unified function
   logout: () => void
   depositCollateral: (amount: number) => Promise<string> // New function for depositing to contract
+  createWalletWithPasskey: (userName: string) => Promise<User> // Simplified one-time wallet creation
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -41,12 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function createWallet(userName: string): Promise<User> {
+  async function createWalletWithPasskey(userName: string): Promise<User> {
     try {
       setIsLoading(true)
-      console.log("[v0] Creating Turnkey wallet for:", userName)
+      console.log("[v0] Creating Turnkey wallet with passkey for:", userName)
 
-      // Create sub-organization with passkey
+      // Create sub-organization with passkey (this creates the passkey and sub-org in one step)
       const subOrgResponse = await createUserSubOrg(userName)
       const subOrgId = subOrgResponse.subOrganizationId
 
@@ -59,14 +60,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const newUser = await createUserInStorage(subOrgId, walletAddress, walletId)
       setUser(newUser)
 
-      console.log("[v0] Turnkey wallet created successfully:", newUser.walletAddress)
+      console.log("[v0] Turnkey wallet created successfully with passkey:", newUser.walletAddress)
       return newUser
     } catch (error) {
-      console.error("[v0] Wallet creation failed:", error)
+      console.error("[v0] Wallet creation with passkey failed:", error)
       throw error
     } finally {
       setIsLoading(false)
     }
+  }
+
+  async function createWallet(userName: string): Promise<User> {
+    return createWalletWithPasskey(userName)
   }
 
   async function login(): Promise<User> {
@@ -113,23 +118,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function loginOrCreateWallet(userName: string): Promise<User> {
     try {
       setIsLoading(true)
-      console.log("[v0] Attempting login for:", userName)
+      console.log("[v0] Attempting login or creating wallet for:", userName)
 
       // Try login first
-      const loginResponse = await loginWithPasskey()
-      const existingUser = getUser()
+      try {
+        const loginResponse = await loginWithPasskey()
+        const existingUser = getUser()
 
-      if (existingUser && existingUser.subOrgId === loginResponse.organizationId) {
-        setUser(existingUser)
-        console.log("[v0] Login successful:", existingUser.walletAddress)
-        return existingUser
+        if (existingUser && existingUser.subOrgId === loginResponse.organizationId) {
+          setUser(existingUser)
+          console.log("[v0] Login successful:", existingUser.walletAddress)
+          return existingUser
+        }
+      } catch (loginError) {
+        console.log("[v0] Login failed, creating new wallet for:", userName)
       }
 
-      throw new Error("Login failed, attempting wallet creation")
-    } catch (loginError) {
-      console.log("[v0] Login failed, creating wallet for:", userName)
-      // If login fails, create wallet
-      return await createWallet(userName)
+      // If login fails or no existing user, create a new wallet
+      return await createWalletWithPasskey(userName)
     } finally {
       setIsLoading(false)
     }
@@ -152,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginOrCreateWallet,
         logout,
         depositCollateral,
+        createWalletWithPasskey,
       }}
     >
       {children}

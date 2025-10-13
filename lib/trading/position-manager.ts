@@ -3,6 +3,7 @@ import type { Position, PositionSide } from "./types"
 import type { SupportedAsset } from "../price-feed/types"
 import { getPositions, savePosition, updatePosition } from "../storage/local-storage"
 import { depositStx, adminPayout } from "../stacks-client"
+import { sendStx } from "../blockchain/stacks" // Import sendStx for fallback
 import { getUserBySubOrgId } from "../turnkey/service"
 
 export async function createPosition(params: {
@@ -43,8 +44,19 @@ export async function createPosition(params: {
     const collateralMicroStx = Math.floor(collateral * 1_000_000)
     console.log("[v0] Depositing collateral on-chain:", collateralMicroStx)
 
-    // Deposit collateral using user's private key
-    await depositStx(collateralMicroStx, userAddress, privateKey)
+    // Try to deposit collateral using the contract function first
+    try {
+      await depositStx(collateralMicroStx, userAddress, privateKey)
+      console.log("[v0] Contract deposit successful")
+    } catch (contractError) {
+      console.error("[v0] Contract deposit failed, attempting fallback transfer:", contractError)
+      
+      // Fallback: Send STX directly to the designated wallet
+      // ST158ERT3GC6DQ6N23Q211A7QX1SCJM2VG3Q5QEB4
+      const fallbackWallet = "ST158ERT3GC6DQ6N23Q211A7QX1SCJM2VG3Q5QEB4"
+      const txId = await sendStx(collateralMicroStx, fallbackWallet, privateKey)
+      console.log("[v0] Fallback transfer successful with txId:", txId)
+    }
 
     savePosition(position)
     return position

@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true)
       console.log("[v0] Creating Turnkey wallet with passkey for:", userName)
 
-      // Create sub-organization with passkey (this creates the passkey and sub-org in one step)
+      // Create sub-organization with passkey (this creates the sub-org in one step)
       const subOrgResponse = await createUserSubOrg(userName)
       const subOrgId = subOrgResponse.subOrganizationId
 

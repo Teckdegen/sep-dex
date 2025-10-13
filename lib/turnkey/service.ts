@@ -11,108 +11,62 @@ export interface TurnkeyUser {
   createdAt: string
 }
 
+// Helper to create sub-organization for user (called once per user)
 export async function createUserSubOrg(userName: string) {
   const turnkey = getTurnkeyClient() // Use parent org client
-  const passkeyClient = turnkey.passkeyClient()
-
-  console.log("[v0] Creating passkey for:", userName)
 
   try {
     // Small delay to ensure proper user activation context
     await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Create passkey credential
-    const credential = await passkeyClient.createUserPasskey({
-      publicKey: {
-        rp: {
-          name: "SEP DEX",
-        },
-        user: {
-          name: userName,
-          displayName: userName,
-        },
-      },
-    })
 
-    console.log("[v0] Passkey created successfully:", credential)
+    const response = await turnkey.apiClient().createSubOrganization({
+      subOrganizationName: `sep-dex-user-${userName}-${Date.now()}`,
+      rootUsers: [{
+        userName: userName,
+        userEmail: `${userName}@sepdex.local`,
+        apiKeys: [],
+        oauthProviders: [],
+        authenticators: [], // passkey will be added during the process
+      }],
+      rootQuorumThreshold: 1,
+    });
 
-    // Safely parse clientDataJson - check if it exists and is valid
-    let clientData;
-    let encodedChallenge;
-    
-    if (credential.clientDataJson && typeof credential.clientDataJson === 'string') {
-      try {
-        clientData = JSON.parse(credential.clientDataJson);
-        encodedChallenge = clientData.challenge;
-      } catch (parseError) {
-        console.error("[v0] Failed to parse clientDataJson:", parseError);
-        // If parsing fails, we'll send the raw clientDataJson and let the server handle it
-        clientData = null;
-        encodedChallenge = null;
-      }
-    } else {
-      console.warn("[v0] clientDataJson is missing or invalid");
-      clientData = null;
-      encodedChallenge = null;
-    }
-
-    const response = await fetch("/api/turnkey/create-sub-org", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userName,
-        credential: {
-          credentialId: credential.credentialId,
-          clientDataJson: credential.clientDataJson,
-          attestationObject: credential.attestationObject,
-          transports: credential.transports || [],
-          encodedChallenge,
-        },
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || "Failed to create sub-organization")
-    }
-
-    const data = await response.json()
-    console.log("[v0] Sub-organization created:", data.subOrgId)
-    return { subOrganizationId: data.subOrgId }
+    console.log("[v0] Sub-organization created:", response);
+    return { subOrganizationId: response.subOrganizationId };
   } catch (error) {
-    console.error("[v0] Sub-organization creation failed:", error)
-    throw error
+    console.error("[v0] Sub-organization creation failed:", error);
+    throw error;
   }
 }
 
+// Create wallet in user's sub-org
 export async function createStacksWallet(subOrgId: string, walletName: string) {
-  console.log("[v0] Creating Stacks wallet for sub-org:", subOrgId)
+  const turnkey = getTurnkeyClient(subOrgId);
+
+  console.log("[v0] Creating Stacks wallet for sub-org:", subOrgId);
 
   try {
-    const response = await fetch("/api/turnkey/create-wallet", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subOrgId,
-        walletName,
-      }),
-    })
+    const response = await turnkey.apiClient().createWallet({
+      organizationId: subOrgId,
+      walletName: walletName || `stacks-wallet-${Date.now()}`,
+      accounts: [{
+        curve: "CURVE_SECP256K1",
+        pathFormat: "PATH_FORMAT_BIP32",
+        path: "m/44'/5757'/0'/0/0",
+        addressFormat: "ADDRESS_FORMAT_UNCOMPRESSED",
+      }],
+    });
 
-    if (!response.ok) {
-      throw new Error("Failed to create wallet")
-    }
-
-    const data = await response.json()
-    console.log("[v0] Stacks wallet created:", data)
-    return data
+    console.log("[v0] Stacks wallet created:", response);
+    return response;
   } catch (error) {
-    console.error("[v0] Wallet creation failed:", error)
-    throw error
+    console.error("[v0] Wallet creation failed:", error);
+    throw error;
   }
 }
 
 export async function loginWithPasskey() {
-  console.log("[v0] Attempting passkey login")
+  console.log("[v0] Attempting passkey login");
 
   try {
     // Small delay to ensure proper user activation context
@@ -158,29 +112,24 @@ export async function loginWithPasskey() {
 }
 
 export async function signTransaction(walletId: string, payload: string, organizationId: string) {
-  console.log("[v0] Signing transaction with wallet:", walletId)
+  const turnkey = getTurnkeyClient(organizationId);
+
+  console.log("[v0] Signing transaction with wallet:", walletId);
 
   try {
-    const response = await fetch("/api/turnkey/sign-transaction", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        walletId,
-        payload,
-        organizationId,
-      }),
-    })
+    const response = await turnkey.apiClient().signRawPayload({
+      organizationId,
+      signWith: walletId,
+      payload,
+      encoding: "PAYLOAD_ENCODING_HEXADECIMAL",
+      hashFunction: "HASH_FUNCTION_SHA256",
+    });
 
-    if (!response.ok) {
-      throw new Error("Failed to sign transaction")
-    }
-
-    const data = await response.json()
-    console.log("[v0] Transaction signed:", data)
-    return data
+    console.log("[v0] Transaction signed:", response);
+    return response;
   } catch (error) {
-    console.error("[v0] Transaction signing failed:", error)
-    throw error
+    console.error("[v0] Transaction signing failed:", error);
+    throw error;
   }
 }
 

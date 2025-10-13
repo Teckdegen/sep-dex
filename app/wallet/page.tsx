@@ -83,12 +83,18 @@ export default function WalletPage() {
   }, [lastTxId])
 
   async function loadBalance() {
-    if (!user?.walletAddress) return
+    if (!user?.walletAddress) {
+      console.log("[v0] No wallet address available for balance check")
+      return
+    }
 
+    console.log("[v0] Loading balance for address:", user.walletAddress)
+    
     try {
       setIsLoadingBalance(true)
       setError(null)
       const stacksBalance = await getStacksBalance(user.walletAddress)
+      console.log("[v0] Setting balance state to:", stacksBalance)
       setBalance(stacksBalance)
     } catch (error) {
       console.error("[v0] Failed to load balance:", error)

@@ -14,7 +14,7 @@ import { AppLayout } from "@/components/layout/app-layout"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 
 export default function TradePage() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices()
   const router = useRouter()
   const [selectedAsset, setSelectedAsset] = useState<SupportedAsset>("BTC")
@@ -108,13 +108,13 @@ export default function TradePage() {
                   Failed to load prices: {pricesError}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {prices &&
                     Object.entries(prices).map(([symbol, price]) => (
                       <div 
                         key={symbol} 
                         onClick={() => setSelectedAsset(symbol as SupportedAsset)} 
-                        className={`cursor-pointer rounded-lg border p-3 transition-all hover:shadow-md ${
+                        className={`cursor-pointer rounded-lg border p-3 transition-all hover:shadow-lg ${
                           selectedAsset === symbol 
                             ? "border-primary bg-primary/10" 
                             : "border-border bg-secondary/30 hover:bg-secondary/50"

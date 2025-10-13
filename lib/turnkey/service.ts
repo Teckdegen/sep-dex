@@ -2,6 +2,7 @@
 
 import { saveUser, getUser, type User } from "../storage/local-storage"
 import { randomPrivateKey, privateKeyToPublic, getAddressFromPrivateKey } from '@stacks/transactions'
+import { getTurnkeyClient } from "./client"
 
 export interface TurnkeyUser {
   id: string
@@ -18,10 +19,74 @@ interface StacksWalletResponse {
   privateKey?: string // Optional for backward compatibility
 }
 
+// Real Turnkey integration with passkeys
+export const createUserSubOrg = async (userName: string) => {
+  try {
+    const turnkeyClient = getTurnkeyClient()
+    
+    const response = await turnkeyClient.createSubOrganization({
+      subOrganizationName: `user-${userName}-${Date.now()}`,
+      rootUsers: [{
+        userName: userName,
+        authenticators: [], // passkey will be added
+      }],
+      rootQuorumThreshold: 1,
+    })
+
+    console.log("sub-org created:", response)
+    return response
+  } catch (e) {
+    console.error("sub-org creation failed:", e)
+    throw e
+  }
+}
+
+// Create wallet in user's sub-org
+export const createWalletInSubOrg = async (subOrgId: string) => {
+  try {
+    const turnkeyClient = getTurnkeyClient(subOrgId)
+    
+    const response = await turnkeyClient.createWallet({
+      organizationId: subOrgId,
+      walletName: `stacks-wallet-${Date.now()}`,
+      accounts: [{
+        curve: "CURVE_SECP256K1",
+        pathFormat: "PATH_FORMAT_BIP32",
+        path: "m/44'/5757'/0'/0/0",
+        addressFormat: "ADDRESS_FORMAT_UNCOMPRESSED",
+      }],
+    })
+
+    console.log("wallet created in sub-org")
+    return response
+  } catch (e) {
+    console.error("wallet creation failed:", e)
+    throw e
+  }
+}
+
+// Sign raw payload with turnkey
+export const signWithTurnkey = async (walletId: string, payload: string) => {
+  try {
+    const turnkeyClient = getTurnkeyClient()
+    
+    const response = await turnkeyClient.signRawPayload({
+      signWith: walletId,
+      payload,
+      encoding: "PAYLOAD_ENCODING_HEXADECIMAL",
+      hashFunction: "HASH_FUNCTION_SHA256",
+    })
+
+    return response
+  } catch (e) {
+    console.error("signing failed:", e)
+    throw e
+  }
+}
+
 // Helper to create sub-organization for user (called once per user)
 export async function createUserSubOrg(userName: string) {
   try {
-    // Create sub-organization with passkey
     console.log("[v0] Creating sub-organization for user:", userName)
     
     // Use the API route instead of direct SDK calls
@@ -334,5 +399,3 @@ export function getTurnkeyWalletPrivateKey(): string | null {
   
   return null
 }
-
-

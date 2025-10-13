@@ -1,4 +1,4 @@
-import { Turnkey } from "@turnkey/sdk-server";
+import { Turnkey as TurnkeyServerSDK } from "@turnkey/sdk-server";
 import { NextRequest, NextResponse } from "next/server";
 
 type TBody = {
@@ -9,20 +9,28 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as TBody;
 
   try {
-    const client = new Turnkey({
-      apiBaseUrl: process.env.TURNKEY_API_BASE_URL || "https://api.turnkey.com",
+    const client = new TurnkeyServerSDK({
+      apiBaseUrl: process.env.TURNKEY_BASE_URL!,
       apiPrivateKey: process.env.TURNKEY_API_PRIVATE_KEY!,
       apiPublicKey: process.env.TURNKEY_API_PUBLIC_KEY!,
       defaultOrganizationId: process.env.TURNKEY_ORGANIZATION_ID!,
     });
 
-    // Note: In a real implementation, we would use the correct Turnkey SDK methods
-    // For now, we'll return a proper mock response
-    const response = {
-      subOrganizationId: `suborg-${Date.now()}`
-    };
+    // Create sub-organization with passkey
+    const response = await client.apiClient().createSubOrganization({
+      subOrganizationName: `${body.userName}-${Date.now()}`,
+      rootUsers: [
+        {
+          userName: body.userName,
+          authenticators: [], // Passkey will be added during registration
+        },
+      ],
+      rootQuorumThreshold: 1,
+    });
 
-    return NextResponse.json(response);
+    return NextResponse.json({
+      subOrganizationId: response.subOrganizationId,
+    });
   } catch (e) {
     console.error("Sub-org creation error:", e);
     return NextResponse.json(

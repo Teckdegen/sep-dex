@@ -1,4 +1,4 @@
-import { Turnkey } from "@turnkey/sdk-server";
+import { Turnkey as TurnkeyServerSDK } from "@turnkey/sdk-server";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as TBody;
 
   try {
-    const client = new Turnkey({
-      apiBaseUrl: process.env.TURNKEY_API_BASE_URL || "https://api.turnkey.com",
+    const client = new TurnkeyServerSDK({
+      apiBaseUrl: process.env.TURNKEY_BASE_URL!,
       apiPrivateKey: process.env.TURNKEY_API_PRIVATE_KEY!,
       apiPublicKey: process.env.TURNKEY_API_PUBLIC_KEY!,
       defaultOrganizationId: process.env.TURNKEY_ORGANIZATION_ID!,
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
         .digest("hex");
     }
 
-    const response = await client.signRawPayload({
+    const response = await client.apiClient().signRawPayload({
       organizationId: body.organizationId,
       signWith: body.walletId,
       payload,

@@ -56,7 +56,7 @@ export async function createStacksWallet(subOrgId: string, walletName: string): 
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ subOrganizationId: subOrgId, walletName }),
+      body: JSON.stringify({ organizationId: subOrgId, walletName }),
     })
     
     if (!response.ok) {
@@ -66,8 +66,9 @@ export async function createStacksWallet(subOrgId: string, walletName: string): 
     const data = await response.json()
     return {
       walletId: data.walletId,
-      addresses: data.addresses,
-      privateKey: data.privateKey // Include the private key for mock implementation
+      addresses: data.addresses
+      // Note: In real Turnkey implementation, private key is not returned
+      // Private keys are managed securely by Turnkey and never exposed
     }
   } catch (error) {
     console.error("[v0] Wallet creation failed:", error)
@@ -151,41 +152,8 @@ export async function createUserInStorage(subOrgId: string, walletAddress: strin
   console.log("[v0] Saving user to localStorage:", user)
   saveUser(user)
   
-  // For Turnkey wallets, also store the private key
-  if (privateKey) {
-    // Validate and format private key
-    let formattedPrivateKey = privateKey.trim();
-    
-    // Remove 0x prefix if present
-    if (formattedPrivateKey.startsWith('0x')) {
-      formattedPrivateKey = formattedPrivateKey.slice(2);
-    }
-    
-    // Handle different key lengths:
-    // - 64 characters: standard private key
-    // - 65 characters: may have extra digit, take last 64 characters
-    // - 66 characters: may have 0x prefix + 64 characters
-    if (formattedPrivateKey.length === 65) {
-      // For 65-character keys, take the last 64 characters
-      formattedPrivateKey = formattedPrivateKey.slice(1);
-    } else if (formattedPrivateKey.length === 66) {
-      // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
-      formattedPrivateKey = formattedPrivateKey.slice(2);
-    } else if (formattedPrivateKey.length !== 64) {
-      // If not 64 characters after processing, it's invalid
-      console.error("[v0] Invalid Turnkey private key format:", formattedPrivateKey);
-      throw new Error("Invalid Turnkey private key format");
-    }
-    
-    // Ensure it's a valid hex string
-    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
-      console.error("[v0] Invalid Turnkey private key format:", formattedPrivateKey);
-      throw new Error("Invalid Turnkey private key format");
-    }
-    
-    // Store WITHOUT 0x prefix
-    localStorage.setItem('turnkey-wallet-private-key', formattedPrivateKey)
-  }
+  // For Turnkey wallets, we don't store private keys as they're managed by Turnkey
+  // Only local wallets store private keys in localStorage
   
   return user
 }
@@ -371,44 +339,10 @@ export function getLocalWalletPrivateKey(): string | null {
 
 // Get Turnkey wallet private key
 // In a real implementation, Turnkey would manage private keys
-// For this mock, we use the private key stored when the wallet was created
+// For this implementation, we return null as Turnkey manages keys securely
 export function getTurnkeyWalletPrivateKey(): string | null {
-  // Get the private key that was stored when the Turnkey wallet was created
-  const turnkeyPrivateKey = localStorage.getItem('turnkey-wallet-private-key')
-  if (turnkeyPrivateKey) {
-    // Validate and format private key
-    let formattedPrivateKey = turnkeyPrivateKey.trim();
-    
-    // Remove 0x prefix if present (just in case)
-    if (formattedPrivateKey.startsWith('0x')) {
-      formattedPrivateKey = formattedPrivateKey.slice(2);
-    }
-    
-    // Handle different key lengths:
-    // - 64 characters: standard private key
-    // - 65 characters: may have extra digit, take last 64 characters
-    // - 66 characters: may have 0x prefix + 64 characters
-    if (formattedPrivateKey.length === 65) {
-      // For 65-character keys, take the last 64 characters
-      formattedPrivateKey = formattedPrivateKey.slice(1);
-    } else if (formattedPrivateKey.length === 66) {
-      // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
-      formattedPrivateKey = formattedPrivateKey.slice(2);
-    } else if (formattedPrivateKey.length !== 64) {
-      // If not 64 characters after processing, it's invalid
-      console.error("[v0] Invalid Turnkey private key format in local storage:", formattedPrivateKey);
-      return null;
-    }
-    
-    // Ensure it's a valid hex string
-    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
-      console.error("[v0] Invalid Turnkey private key format in local storage:", formattedPrivateKey);
-      return null;
-    }
-    
-    // Return WITHOUT 0x prefix as expected by Stacks.js
-    return formattedPrivateKey;
-  }
-  
+  // In a real Turnkey implementation, private keys are never exposed
+  // They are managed securely by Turnkey and used for signing operations
+  console.log("[v0] Turnkey wallets do not expose private keys - they are managed securely by Turnkey")
   return null
 }

@@ -132,14 +132,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error("Local wallet private key not found")
         }
       } else {
-        // For Turnkey wallets, get the private key from Turnkey service
-        // In a real implementation, this would use Turnkey's signing API
-        const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
-        if (turnkeyPrivateKey) {
-          privateKey = turnkeyPrivateKey // Already properly formatted by getTurnkeyWalletPrivateKey
-        } else {
-          throw new Error("Turnkey wallet private key not found")
-        }
+        // For Turnkey wallets, we cannot get the private key
+        // In a real implementation, we would use Turnkey's signing API
+        throw new Error("Turnkey wallet deposit not implemented. Use local wallet for testing.");
       }
 
       console.log("[v0] Using private key for deposit:", privateKey.substring(0, 10) + "...") // Log first 10 chars for debugging
@@ -295,42 +290,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Local wallet private key not found")
       }
     } else {
-      // For Turnkey wallets, get the private key from Turnkey service
-      const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
-      if (turnkeyPrivateKey) {
-        // Validate and format private key
-        let formattedPrivateKey = turnkeyPrivateKey.trim();
-        
-        // Remove 0x prefix if present (just in case)
-        if (formattedPrivateKey.startsWith('0x')) {
-          formattedPrivateKey = formattedPrivateKey.slice(2);
-        }
-        
-        // Handle different key lengths:
-        // - 64 characters: standard private key
-        // - 65 characters: may have extra digit, take last 64 characters
-        // - 66 characters: may have 0x prefix + 64 characters
-        if (formattedPrivateKey.length === 65) {
-          // For 65-character keys, take the last 64 characters
-          formattedPrivateKey = formattedPrivateKey.slice(1);
-        } else if (formattedPrivateKey.length === 66) {
-          // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
-          formattedPrivateKey = formattedPrivateKey.slice(2);
-        } else if (formattedPrivateKey.length !== 64) {
-          // If not 64 characters after processing, it's invalid
-          throw new Error("Invalid Turnkey private key format in local storage");
-        }
-        
-        // Ensure it's a valid hex string
-        if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
-          throw new Error("Invalid Turnkey private key format in local storage");
-        }
-        
-        // Return WITHOUT 0x prefix as expected by Stacks.js
-        return formattedPrivateKey;
-      } else {
-        throw new Error("Turnkey wallet private key not found")
-      }
+      // For Turnkey wallets, we cannot get the private key as it's managed securely by Turnkey
+      // In a real implementation, we would use Turnkey's signing API for transactions
+      // For this implementation, we'll throw an error as the current code expects a private key
+      throw new Error("Turnkey wallets do not expose private keys. Use Turnkey's signing API for transactions.");
     }
   }
 

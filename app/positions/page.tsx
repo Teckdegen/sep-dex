@@ -4,20 +4,49 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { usePositions } from "@/lib/trading/hooks"
-import { Loader2, LogOut } from "lucide-react"
+import { Loader2, LogOut, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PositionCard } from "@/components/trading/position-card"
+import { getStacksBalance } from "@/lib/blockchain/stacks"
 
 export default function PositionsPage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { positions, isLoading: positionsLoading, error: positionsError } = usePositions()
   const router = useRouter()
+  const [walletBalance, setWalletBalance] = useState<number>(0)
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/")
     }
   }, [isAuthenticated, isLoading, router])
+
+  useEffect(() => {
+    if (user?.walletAddress) {
+      loadWalletBalance()
+      
+      // Set up automatic balance refresh every 10 seconds
+      const balanceInterval = setInterval(loadWalletBalance, 10000)
+      
+      // Clean up interval on component unmount
+      return () => clearInterval(balanceInterval)
+    }
+  }, [user])
+
+  async function loadWalletBalance() {
+    if (!user?.walletAddress) return
+
+    try {
+      setIsLoadingBalance(true)
+      const balance = await getStacksBalance(user.walletAddress)
+      setWalletBalance(balance)
+    } catch (error) {
+      console.error("[v0] Failed to load wallet balance:", error)
+    } finally {
+      setIsLoadingBalance(false)
+    }
+  }
 
   if (isLoading || !user) {
     return (
@@ -41,8 +70,21 @@ export default function PositionsPage() {
               Charts
             </Button>
             <Button onClick={() => router.push("/wallet")} variant="outline" size="sm">
+              <Wallet className="mr-2 h-4 w-4" />
               Wallet
             </Button>
+            <div className="text-sm text-muted-foreground">
+              <span className="text-foreground">
+                {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
+              </span>
+              <span className="ml-2">
+                ({isLoadingBalance ? (
+                  <Loader2 className="inline h-3 w-3 animate-spin" />
+                ) : (
+                  `${(walletBalance / 1_000_000).toFixed(2)} STX`
+                )})
+              </span>
+            </div>
             <Button onClick={logout} variant="outline" size="sm">
               <LogOut className="mr-2 h-4 w-4" />
               Logout

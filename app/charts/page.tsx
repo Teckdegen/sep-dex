@@ -1,20 +1,55 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { useAllPrices } from "@/lib/price-feed/hooks"
-import { Loader2 } from "lucide-react"
+import { Loader2, Wallet, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { PriceChart } from "@/components/trading/price-chart"
+import { getStacksBalance } from "@/lib/blockchain/stacks"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 
 export default function ChartsPage() {
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices()
   const router = useRouter()
   const [selectedAsset, setSelectedAsset] = useState<SupportedAsset>("BTC")
+  const [walletBalance, setWalletBalance] = useState<number>(0)
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/")
+    }
+  }, [isAuthenticated, isLoading, router])
+
+  useEffect(() => {
+    if (user?.walletAddress) {
+      loadWalletBalance()
+      
+      // Set up automatic balance refresh every 10 seconds
+      const balanceInterval = setInterval(loadWalletBalance, 10000)
+      
+      // Clean up interval on component unmount
+      return () => clearInterval(balanceInterval)
+    }
+  }, [user])
+
+  async function loadWalletBalance() {
+    if (!user?.walletAddress) return
+
+    try {
+      setIsLoadingBalance(true)
+      const balance = await getStacksBalance(user.walletAddress)
+      setWalletBalance(balance)
+    } catch (error) {
+      console.error("[v0] Failed to load wallet balance:", error)
+    } finally {
+      setIsLoadingBalance(false)
+    }
+  }
 
   if (isLoading || !user) {
     return (
@@ -43,7 +78,18 @@ export default function ChartsPage() {
               <span className="text-foreground">
                 {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
               </span>
+              <span className="ml-2">
+                ({isLoadingBalance ? (
+                  <Loader2 className="inline h-3 w-3 animate-spin" />
+                ) : (
+                  `${(walletBalance / 1_000_000).toFixed(2)} STX`
+                )})
+              </span>
             </div>
+            <Button onClick={logout} variant="outline" size="sm">
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>

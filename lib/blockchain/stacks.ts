@@ -272,9 +272,13 @@ export async function sendStx(amount: number, recipient: string, senderKey: stri
 // Get actual Stacks wallet balance (not contract balance)
 export async function getStacksBalance(address: string): Promise<number> {
   try {
+    console.log("[v0] Fetching Stacks balance for address:", address)
     const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/address/${address}/balances`)
     const data = await response.json()
-    return data.stx.balance ? Number(data.stx.balance) : 0
+    console.log("[v0] Balance response:", data)
+    const balance = data.stx.balance ? Number(data.stx.balance) : 0
+    console.log("[v0] Returning balance:", balance)
+    return balance
   } catch (error) {
     console.error("[v0] Failed to get Stacks balance:", error)
     return 0

@@ -9,13 +9,16 @@ import { Button } from "@/components/ui/button"
 import { TradingForm } from "@/components/trading/trading-form"
 import { PriceCard } from "@/components/trading/price-card"
 import { PriceChart } from "@/components/trading/price-chart"
+import { getStacksBalance } from "@/lib/blockchain/stacks"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 
 export default function TradePage() {
-  const { user, isAuthenticated, isLoading, logout } = useAuth()
+  const { user, isAuthenticated, isLoading, logout, getUserWalletBalance } = useAuth()
   const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices()
   const router = useRouter()
   const [selectedAsset, setSelectedAsset] = useState<SupportedAsset>("BTC")
+  const [walletBalance, setWalletBalance] = useState<number>(0)
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
 
   useEffect(() => {
     console.log("[v0] Trade page - auth state:", { user, isAuthenticated, isLoading })
@@ -24,6 +27,32 @@ export default function TradePage() {
       router.push("/")
     }
   }, [isAuthenticated, isLoading, router, user])
+
+  useEffect(() => {
+    if (user?.walletAddress) {
+      loadWalletBalance()
+      
+      // Set up automatic balance refresh every 10 seconds
+      const balanceInterval = setInterval(loadWalletBalance, 10000)
+      
+      // Clean up interval on component unmount
+      return () => clearInterval(balanceInterval)
+    }
+  }, [user])
+
+  async function loadWalletBalance() {
+    if (!user?.walletAddress) return
+
+    try {
+      setIsLoadingBalance(true)
+      const balance = await getStacksBalance(user.walletAddress)
+      setWalletBalance(balance)
+    } catch (error) {
+      console.error("[v0] Failed to load wallet balance:", error)
+    } finally {
+      setIsLoadingBalance(false)
+    }
+  }
 
   if (isLoading || !user) {
     console.log("[v0] Trade page - showing loading state")
@@ -56,6 +85,13 @@ export default function TradePage() {
             <div className="text-sm text-muted-foreground">
               <span className="text-foreground">
                 {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
+              </span>
+              <span className="ml-2">
+                ({isLoadingBalance ? (
+                  <Loader2 className="inline h-3 w-3 animate-spin" />
+                ) : (
+                  `${(walletBalance / 1_000_000).toFixed(2)} STX`
+                )})
               </span>
             </div>
             <Button onClick={logout} variant="outline" size="sm">

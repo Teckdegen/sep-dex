@@ -4,14 +4,14 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Wallet, Copy, Check, Send } from "lucide-react"
+import { Loader2, Wallet, Copy, Check, Send, RefreshCw } from "lucide-react"
 import { getStacksBalance, sendStx } from "@/lib/blockchain/stacks"
 
 export default function WalletPage() {
-  const { user, isAuthenticated, isLoading, getUserPrivateKey } = useAuth()
+  const { user, isAuthenticated, isLoading, getUserPrivateKey, logout } = useAuth()
   const router = useRouter()
   const [balance, setBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
@@ -33,6 +33,12 @@ export default function WalletPage() {
   useEffect(() => {
     if (user?.walletAddress) {
       loadBalance()
+      
+      // Set up automatic balance refresh every 10 seconds
+      const balanceInterval = setInterval(loadBalance, 10000)
+      
+      // Clean up interval on component unmount
+      return () => clearInterval(balanceInterval)
     }
   }, [user])
 
@@ -41,6 +47,7 @@ export default function WalletPage() {
 
     try {
       setIsLoadingBalance(true)
+      setError(null)
       const stacksBalance = await getStacksBalance(user.walletAddress)
       setBalance(stacksBalance)
     } catch (error) {
@@ -94,7 +101,7 @@ export default function WalletPage() {
       setRecipientAddress("")
       setAmount("")
       
-      // Reload balance
+      // Reload balance immediately after successful transfer
       await loadBalance()
     } catch (err) {
       console.error("[v0] Transfer failed:", err)
@@ -115,9 +122,12 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-foreground">Wallet</h1>
+        <div className="mx-auto max-w-6xl">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Wallet Dashboard</h1>
+              <p className="text-muted-foreground">Manage your STX tokens and trading positions</p>
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => router.push("/positions")}>
                 Positions
@@ -126,109 +136,201 @@ export default function WalletPage() {
                 Charts
               </Button>
               <Button variant="outline" onClick={() => router.push("/trade")}>
-                Go to Trading
+                Trading
               </Button>
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Wallet Info */}
-            <Card className="border-border bg-card p-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5 text-primary" />
-                  <h2 className="text-xl font-semibold text-foreground">Wallet Address</h2>
-                </div>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Wallet Overview */}
+            <div className="lg:col-span-1 space-y-6">
+              <Card className="border-border bg-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5 text-primary" />
+                    Wallet Information
+                  </CardTitle>
+                  <CardDescription>Your Stacks wallet details and balance</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Wallet Address</Label>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-sm bg-muted p-2 rounded">
+                        {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
+                      </code>
+                      <Button size="sm" variant="outline" onClick={copyAddress}>
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-2 rounded-lg bg-muted p-3">
-                  <code className="flex-1 text-sm text-foreground">{user.walletAddress}</code>
-                  <Button size="sm" variant="ghost" onClick={copyAddress}>
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Available Balance</Label>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={loadBalance}
+                        disabled={isLoadingBalance}
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <div className="text-3xl font-bold text-foreground">
+                        {isLoadingBalance ? (
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                        ) : (
+                          `${(balance / 1_000_000).toFixed(2)} STX`
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Automatically updates every 10 seconds
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border bg-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Send className="h-5 w-5 text-primary" />
+                    Quick Actions
+                  </CardTitle>
+                  <CardDescription>Access other parts of the platform</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={() => router.push("/trade")}>
+                    Trade
                   </Button>
-                </div>
-
-                <div className="rounded-lg border border-border bg-muted/50 p-4">
-                  <p className="text-sm text-muted-foreground">Available Balance</p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {isLoadingBalance ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                    ) : (
-                      `${(balance / 1_000_000).toFixed(2)} STX`
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    This is your actual wallet balance. You can trade directly from this balance.
-                  </p>
-                </div>
-              </div>
-            </Card>
+                  <Button variant="outline" onClick={() => router.push("/positions")}>
+                    Positions
+                  </Button>
+                  <Button variant="outline" onClick={() => router.push("/charts")}>
+                    Charts
+                  </Button>
+                  <Button variant="outline" onClick={logout}>
+                    Logout
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Send STX Form */}
-            <Card className="border-border bg-card p-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Send className="h-5 w-5 text-primary" />
-                  <h2 className="text-xl font-semibold text-foreground">Send STX</h2>
-                </div>
+            <div className="lg:col-span-2">
+              <Card className="border-border bg-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Send className="h-5 w-5 text-primary" />
+                    Send STX
+                  </CardTitle>
+                  <CardDescription>Transfer STX tokens to another wallet address</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="recipient-address">Recipient Address</Label>
+                        <Input
+                          id="recipient-address"
+                          type="text"
+                          placeholder="ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
+                          value={recipientAddress}
+                          onChange={(e) => setRecipientAddress(e.target.value)}
+                          disabled={isSending}
+                        />
+                      </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="recipient-address">Recipient Address</Label>
-                    <Input
-                      id="recipient-address"
-                      type="text"
-                      placeholder="ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
-                      value={recipientAddress}
-                      onChange={(e) => setRecipientAddress(e.target.value)}
-                      disabled={isSending}
-                    />
+                      <div className="space-y-2">
+                        <Label htmlFor="amount">Amount (STX)</Label>
+                        <Input
+                          id="amount"
+                          type="number"
+                          placeholder="0.00"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          disabled={isSending}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Available: {(balance / 1_000_000).toFixed(2)} STX
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        onClick={handleSendStx}
+                        disabled={isSending || !recipientAddress || !amount}
+                        size="lg"
+                        className="flex-1"
+                      >
+                        {isSending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending STX...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Send STX
+                          </>
+                        )}
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setRecipientAddress("")
+                          setAmount("")
+                        }}
+                        size="lg"
+                        disabled={isSending}
+                      >
+                        Clear
+                      </Button>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Amount (STX)</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      placeholder="0.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      disabled={isSending}
-                    />
+              {/* Transaction Status */}
+              {error && (
+                <Card className="border-destructive/50 bg-destructive/10 mt-6">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-destructive">{error}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {success && (
+                <Card className="border-green-500/50 bg-green-500/10 mt-6">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-green-500">{success}</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Wallet Address Full View */}
+              <Card className="border-border bg-card mt-6">
+                <CardHeader>
+                  <CardTitle>Full Wallet Address</CardTitle>
+                  <CardDescription>Complete wallet address for receiving funds</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm bg-muted p-3 rounded break-all">
+                      {user.walletAddress}
+                    </code>
+                    <Button size="sm" variant="outline" onClick={copyAddress}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
                   </div>
-
-                  <Button
-                    onClick={handleSendStx}
-                    disabled={isSending || !recipientAddress || !amount}
-                    className="w-full"
-                  >
-                    {isSending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Send STX
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
-
-          {error && (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="rounded-lg border border-green-500/50 bg-green-500/10 p-4 text-sm text-green-500">
-              {success}
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
-import { getStacksBalance, importLocalWallet } from "@/lib/blockchain/stacks"
+import { getStacksBalance } from "@/lib/blockchain/stacks"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -60,7 +60,7 @@ export default function DebugPage() {
 
     setLoading(true)
     setError(null)
-    try {
+    try { 
       // This would be the function to import a wallet with a known private key
       // For now, we'll just show a message
       alert("In a full implementation, this would import your wallet with the provided private key. For now, please use the local wallet creation option and then manually add funds to that address.")
@@ -152,8 +152,7 @@ export default function DebugPage() {
               {balance !== null && (
                 <div className="bg-muted rounded p-4">
                   <h3 className="font-semibold mb-2">Balance Results:</h3>
-                  <p>Raw Balance (microSTX): {balance.toLocaleString()}</p>
-                  <p className="text-lg font-bold">STX Balance: {(balance / 1_000_000).toFixed(2)} STX</p>
+                  <p>STX Balance: {balance.toFixed(2)} STX</p>
                 </div>
               )}
             </CardContent>

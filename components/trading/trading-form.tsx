@@ -38,7 +38,7 @@ export function TradingForm({ userId }: TradingFormProps) {
       if (user?.walletAddress) {
         try {
           const balance = await getUserWalletBalance()
-          setWalletBalance(balance / 1_000_000) // Convert from microSTX to STX
+          setWalletBalance(balance) // Balance is already in STX, no conversion needed
         } catch (error) {
           console.error("[v0] Failed to load wallet balance:", error)
         }

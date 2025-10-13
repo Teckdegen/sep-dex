@@ -234,7 +234,7 @@ export default function WalletPage() {
                         {isLoadingBalance ? (
                           <Loader2 className="h-8 w-8 animate-spin" />
                         ) : (
-                          `${(balance / 1_000_000).toFixed(2)} STX`
+                          `${balance.toFixed(2)} STX`
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -284,7 +284,7 @@ export default function WalletPage() {
                           className="bg-background border-border"
                         />
                         <p className="text-xs text-muted-foreground">
-                          Available: {(balance / 1_000_000).toFixed(2)} STX
+                          Available: {balance.toFixed(2)} STX
                         </p>
                       </div>
                     </div>

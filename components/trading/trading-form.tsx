@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createPosition } from "@/lib/trading/position-manager"
 import { computePosition, getRiskWarning } from "@/lib/trading/calculator"
-import { Loader2, AlertTriangle } from "lucide-react"
+import { Loader2, AlertTriangle, Info } from "lucide-react"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 import type { PositionSide } from "@/lib/trading/types"
 import { useAuth } from "@/lib/auth/context"
@@ -25,7 +25,7 @@ export function TradingForm({ userId }: TradingFormProps) {
   const [asset, setAsset] = useState<SupportedAsset>("BTC")
   const [side, setSide] = useState<PositionSide>("long")
   const [leverage, setLeverage] = useState(10)
-  const [collateral, setCollateral] = useState(100) // Changed from USD to STX
+  const [collateral, setCollateral] = useState(100)
   const [walletBalance, setWalletBalance] = useState<number>(0)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -116,104 +116,123 @@ export function TradingForm({ userId }: TradingFormProps) {
   }
 
   return (
-    <Card className="border-border bg-card p-6">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label>Asset</Label>
-          <Select value={asset} onValueChange={(v) => setAsset(v as SupportedAsset)}>
-            <SelectTrigger className="bg-input">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
-              <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
-              <SelectItem value="STX">Stacks (STX)</SelectItem>
-              <SelectItem value="SOL">Solana (SOL)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Direction</Label>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              type="button"
-              variant={side === "long" ? "default" : "outline"}
-              onClick={() => setSide("long")}
-              className={side === "long" ? "bg-green-600 hover:bg-green-700" : ""}
-            >
-              Long
-            </Button>
-            <Button
-              type="button"
-              variant={side === "short" ? "default" : "outline"}
-              onClick={() => setSide("short")}
-              className={side === "short" ? "bg-red-600 hover:bg-red-700" : ""}
-            >
-              Short
-            </Button>
+    <Card className="border-border bg-card p-6 shadow-lg">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-foreground">Asset</Label>
+            <Select value={asset} onValueChange={(v) => setAsset(v as SupportedAsset)}>
+              <SelectTrigger className="bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
+                <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
+                <SelectItem value="STX">Stacks (STX)</SelectItem>
+                <SelectItem value="SOL">Solana (SOL)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label>Leverage: {leverage}x</Label>
-          <Input
-            type="range"
-            min="1"
-            max="100"
-            value={leverage}
-            onChange={(e) => setLeverage(Number(e.target.value))}
-            className="bg-input"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Collateral (STX)</Label>
-          <Input
-            type="number"
-            value={collateral}
-            onChange={(e) => setCollateral(Number(e.target.value))}
-            min="1"
-            step="1"
-            className="bg-input"
-          />
-          <div className="text-sm text-muted-foreground">
-            Wallet Balance: {walletBalance.toFixed(2)} STX
-          </div>
-          {price && (
-            <div className="text-sm text-muted-foreground">
-              Value: ${(collateral * price).toFixed(2)} USD
+          <div className="space-y-2">
+            <Label className="text-foreground">Direction</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant={side === "long" ? "default" : "outline"}
+                onClick={() => setSide("long")}
+                className={`h-12 ${side === "long" ? "bg-success hover:bg-success/90 text-white" : "border-border hover:bg-success/10"}`}
+              >
+                Long
+              </Button>
+              <Button
+                type="button"
+                variant={side === "short" ? "default" : "outline"}
+                onClick={() => setSide("short")}
+                className={`h-12 ${side === "short" ? "bg-danger hover:bg-danger/90 text-white" : "border-border hover:bg-danger/10"}`}
+              >
+                Short
+              </Button>
             </div>
-          )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Label className="text-foreground">Leverage: {leverage}x</Label>
+              <span className="text-sm text-muted-foreground">{leverage >= 25 ? "High Risk" : leverage >= 10 ? "Medium Risk" : "Low Risk"}</span>
+            </div>
+            <Input
+              type="range"
+              min="1"
+              max="100"
+              value={leverage}
+              onChange={(e) => setLeverage(Number(e.target.value))}
+              className="bg-background border-border"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-foreground">Collateral (STX)</Label>
+            <Input
+              type="number"
+              value={collateral}
+              onChange={(e) => setCollateral(Number(e.target.value))}
+              min="1"
+              step="1"
+              className="bg-background border-border"
+            />
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Wallet Balance:</span>
+              <span className="font-medium text-foreground">{walletBalance.toFixed(2)} STX</span>
+            </div>
+            {price && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Value:</span>
+                <span className="font-medium text-foreground">${(collateral * price).toFixed(2)} USD</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {preview && (
-          <div className="space-y-2 rounded-lg bg-secondary p-4 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Entry Price:</span>
-              <span className="font-medium text-foreground">${price?.toLocaleString()}</span>
+          <Card className="border-border bg-secondary/50 p-4">
+            <h3 className="font-semibold text-foreground mb-3 flex items-center">
+              <Info className="h-4 w-4 mr-2" />
+              Position Preview
+            </h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Entry Price:</span>
+                <span className="font-medium text-foreground">${price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Position Size:</span>
+                <span className="font-medium text-foreground">${preview.positionSize.toFixed(2)} USD</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Liquidation Price:</span>
+                <span className="font-medium text-foreground">${preview.liquidationPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Potential PnL (1% move):</span>
+                <span className="font-medium text-foreground">
+                  ${(preview.positionSize * 0.01).toFixed(2)} USD
+                </span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Position Size:</span>
-              <span className="font-medium text-foreground">${preview.positionSize.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Liquidation Price:</span>
-              <span className="font-medium text-foreground">${preview.liquidationPrice.toLocaleString()}</span>
-            </div>
-          </div>
+          </Card>
         )}
 
         {leverage >= 25 && (
-          <div className="flex items-start gap-2 rounded-lg bg-yellow-500/10 p-3 text-sm text-yellow-500">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
+          <div className="flex items-start gap-2 rounded-lg bg-yellow-500/10 p-3 text-sm text-yellow-500 border border-yellow-500/30">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>{getRiskWarning(leverage)}</span>
           </div>
         )}
 
-        {error && <div className="rounded-lg bg-red-500/10 p-3 text-sm text-red-500">{error}</div>}
+        {error && <div className="rounded-lg bg-red-500/10 p-3 text-sm text-red-500 border border-red-500/30">{error}</div>}
 
-        {success && <div className="rounded-lg bg-green-500/10 p-3 text-sm text-green-500">{success}</div>}
+        {success && <div className="rounded-lg bg-green-500/10 p-3 text-sm text-green-500 border border-green-500/30">{success}</div>}
 
         <Button type="submit" disabled={isCreating || priceLoading || !price} className="w-full" size="lg">
           {isCreating ? (

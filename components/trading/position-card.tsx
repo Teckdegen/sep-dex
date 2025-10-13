@@ -19,7 +19,7 @@ export function PositionCard({ position }: PositionCardProps) {
   const { pnl, pnlPercent, isLiquidated } = usePositionPnL(position)
   const [isClosing, setIsClosing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [currentPrice, setCurrentPrice] = useState<number>(0) // Add current price state
+  const [currentPrice, setCurrentPrice] = useState<number>(0)
 
   // Fetch current price for the position
   useEffect(() => {
@@ -71,10 +71,10 @@ export function PositionCard({ position }: PositionCardProps) {
   const pnlInDollars = currentPrice > 0 ? (pnl / currentPrice) * position.collateral : 0
 
   return (
-    <Card className={`border-border bg-card p-4 ${isLiquidated ? "opacity-50" : ""}`}>
+    <Card className={`border-border bg-card p-4 shadow-lg hover:shadow-xl transition-shadow ${isLiquidated ? "opacity-50" : ""}`}>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground">{position.symbol || "N/A"}</span>
+          <span className="font-bold text-lg text-foreground">{position.symbol || "N/A"}</span>
           <span
             className={`rounded px-2 py-0.5 text-xs font-medium ${
               position.side === "long" ? "bg-success/20 text-success" : "bg-danger/20 text-danger"
@@ -82,7 +82,7 @@ export function PositionCard({ position }: PositionCardProps) {
           >
             {position.side ? position.side.toUpperCase() : "N/A"}
           </span>
-          <span className="text-xs text-muted-foreground">{position.leverage || 0}x</span>
+          <span className="text-xs font-semibold text-muted-foreground">{position.leverage || 0}x</span>
         </div>
         {isLiquidated && <span className="text-xs font-medium text-destructive">LIQUIDATED</span>}
       </div>
@@ -90,25 +90,25 @@ export function PositionCard({ position }: PositionCardProps) {
       <div className="mb-3 space-y-1 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">Entry:</span>
-          <span className="text-foreground">
+          <span className="font-medium text-foreground">
             ${(position.entry_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Collateral:</span>
-          <span className="text-foreground">
-            ${(position.collateral || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <span className="font-medium text-foreground">
+            {position.collateral.toFixed(2)} STX
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Liquidation:</span>
-          <span className="text-foreground">
+          <span className="font-medium text-foreground">
             ${(position.liquidation_price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Current Price:</span>
-          <span className="text-foreground">
+          <span className="font-medium text-foreground">
             ${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         </div>
@@ -116,7 +116,7 @@ export function PositionCard({ position }: PositionCardProps) {
 
       <div className="mb-3 rounded-lg bg-secondary p-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">PnL</span>
+          <span className="text-sm font-medium text-muted-foreground">PnL</span>
           <div className="flex items-center gap-2">
             {isProfitable ? (
               <TrendingUp className="h-4 w-4 text-success" />
@@ -124,10 +124,10 @@ export function PositionCard({ position }: PositionCardProps) {
               <TrendingDown className="h-4 w-4 text-danger" />
             )}
             <div className="text-right">
-              <div className={`font-semibold ${isProfitable ? "text-success" : "text-danger"}`}>
+              <div className={`font-bold ${isProfitable ? "text-success" : "text-danger"}`}>
                 ${Math.abs(pnl).toFixed(2)} ({Math.abs(pnlInDollars).toFixed(2)} STX)
               </div>
-              <div className={`text-xs ${isProfitable ? "text-success" : "text-danger"}`}>
+              <div className={`text-xs font-medium ${isProfitable ? "text-success" : "text-danger"}`}>
                 {pnlPercent > 0 ? "+" : ""}
                 {pnlPercent.toFixed(2)}%
               </div>
@@ -142,8 +142,7 @@ export function PositionCard({ position }: PositionCardProps) {
         <Button
           onClick={handleClose}
           disabled={isClosing}
-          variant="outline"
-          className="w-full bg-transparent"
+          className={`w-full ${isProfitable ? "bg-success hover:bg-success/90" : "bg-danger hover:bg-danger/90"}`}
           size="sm"
         >
           {isClosing ? (

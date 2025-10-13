@@ -272,7 +272,7 @@ export async function getTransactionStatus(txId: string): Promise<string> {
 // Get actual Stacks wallet balance (not contract balance)
 export async function getStacksBalance(address: string): Promise<number> {
   try {
-    console.log("[v0] Fetching Stacks balance for address:", address)
+    console.log("[v0] Fetching Stacks balance for address using Stacks.js:", address)
     
     // Validate address
     if (!address || address.length < 20) {
@@ -280,78 +280,30 @@ export async function getStacksBalance(address: string): Promise<number> {
       return 0
     }
     
-    // Add a small delay to ensure any recent transactions are processed
-    // Increased delay to 2 seconds to give more time for transaction processing
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Use Stacks.js library for balance checking
+    const url = `https://stacks-node-api.testnet.stacks.co/v2/accounts/${address}?proof=0`;
     
-    // Try primary endpoint first
-    const url = `https://stacks-node-api.testnet.stacks.co/extended/v1/address/${address}/balances`
-    console.log("[v0] Fetching from URL:", url)
+    console.log("[v0] Fetching from Stacks.js URL:", url);
     
-    const response = await fetch(url)
+    const response = await fetch(url);
     
-    console.log("[v0] Response status:", response.status, response.statusText)
+    console.log("[v0] Response status:", response.status, response.statusText);
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch balance: ${response.status} ${response.statusText}`)
+      throw new Error(`Failed to fetch balance: ${response.status} ${response.statusText}`);
     }
     
-    const data = await response.json()
-    console.log("[v0] Balance response for address", address, ":", JSON.stringify(data, null, 2))
+    const data = await response.json();
+    console.log("[v0] Balance response for address", address, ":", JSON.stringify(data, null, 2));
     
-    // Handle different response formats
-    let balance = 0
-    if (data.stx && data.stx.balance) {
-      // The balance is returned as a string in microSTX, convert to number
-      balance = Number(data.stx.balance)
-      console.log("[v0] Found stx.balance:", data.stx.balance, "converted to:", balance)
-    } else if (data.balance) {
-      // Alternative format
-      balance = Number(data.balance)
-      console.log("[v0] Found balance:", data.balance, "converted to:", balance)
-    } else {
-      console.log("[v0] No balance found in response")
-    }
+    // The balance is returned as a string in microSTX, convert to number
+    const balance = data.balance ? Number(data.balance) : 0;
     
-    console.log("[v0] Raw balance (microSTX):", balance)
-    console.log("[v0] Converted balance (STX):", balance / 1_000_000)
-    return balance
+    console.log("[v0] Raw balance (microSTX):", balance);
+    console.log("[v0] Converted balance (STX):", balance / 1_000_000);
+    return balance;
   } catch (error) {
-    console.error("[v0] Failed to get Stacks balance:", error)
-    // Try alternative endpoint
-    try {
-      const url2 = `https://stacks-node-api.testnet.stacks.co/v2/accounts/${address}?proof=0`
-      console.log("[v0] Trying alternative endpoint:", url2)
-      const response = await fetch(url2)
-      if (response.ok) {
-        const data = await response.json()
-        const balance = data.balance ? Number(data.balance) : 0
-        console.log("[v0] Alternative endpoint balance:", balance)
-        return balance
-      }
-    } catch (altError) {
-      console.error("[v0] Alternative endpoint also failed:", altError)
-    }
-    
-    // If both endpoints fail, try one more time with a longer delay
-    try {
-      await new Promise(resolve => setTimeout(resolve, 3000))
-      const url3 = `https://stacks-node-api.testnet.stacks.co/extended/v1/address/${address}/balances`
-      console.log("[v0] Retrying with URL:", url3)
-      const retryResponse = await fetch(url3)
-      if (retryResponse.ok) {
-        const data = await retryResponse.json()
-        let balance = 0
-        if (data.stx && data.stx.balance) {
-          balance = Number(data.stx.balance)
-        }
-        console.log("[v0] Retry balance (microSTX):", balance)
-        return balance
-      }
-    } catch (retryError) {
-      console.error("[v0] Retry also failed:", retryError)
-    }
-    
-    return 0
+    console.error("[v0] Failed to get Stacks balance using Stacks.js:", error);
+    return 0;
   }
 }

@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Wallet, Copy, Check, Send, RefreshCw } from "lucide-react"
+import { Loader2, Send, RefreshCw, Copy, Check } from "lucide-react"
 import { getStacksBalance, sendStx } from "@/lib/blockchain/stacks"
+import { AppLayout } from "@/components/layout/app-layout"
 
 export default function WalletPage() {
-  const { user, isAuthenticated, isLoading, getUserPrivateKey, logout } = useAuth()
+  const { user, isAuthenticated, isLoading, getUserPrivateKey } = useAuth()
   const router = useRouter()
   const [balance, setBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
@@ -72,6 +73,7 @@ export default function WalletPage() {
       // Clean up interval after 2 minutes (maximum wait time)
       const timeout = setTimeout(() => {
         clearInterval(txInterval)
+        clearTimeout(timeout)
         setLastTxId(null)
       }, 120000)
       
@@ -160,41 +162,30 @@ export default function WalletPage() {
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AppLayout walletAddress={user?.walletAddress || ""}>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppLayout walletAddress={user.walletAddress}>
       <div className="container mx-auto py-8 px-4">
         <div className="mx-auto max-w-6xl">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Wallet Dashboard</h1>
-              <p className="text-muted-foreground">Manage your STX tokens and trading positions</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => router.push("/positions")} className="w-full sm:w-auto">
-                Positions
-              </Button>
-              <Button variant="outline" onClick={() => router.push("/charts")} className="w-full sm:w-auto">
-                Charts
-              </Button>
-              <Button variant="outline" onClick={() => router.push("/trade")} className="w-full sm:w-auto">
-                Trading
-              </Button>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground">Wallet Dashboard</h1>
+            <p className="text-muted-foreground">Manage your STX tokens and trading positions</p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-3">
             {/* Wallet Overview */}
             <div className="md:col-span-1 space-y-6">
-              <Card className="border-border bg-card">
+              <Card className="border-border bg-card shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Wallet className="h-5 w-5 text-primary" />
+                    <Copy className="h-5 w-5 text-primary" />
                     Wallet Information
                   </CardTitle>
                   <CardDescription>Your Stacks wallet details and balance</CardDescription>
@@ -233,41 +224,17 @@ export default function WalletPage() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Automatically updates every 10 seconds
+                        Automatically updates every 2 minutes
                       </p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border bg-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Send className="h-5 w-5 text-primary" />
-                    Quick Actions
-                  </CardTitle>
-                  <CardDescription>Access other parts of the platform</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" onClick={() => router.push("/trade")}>
-                    Trade
-                  </Button>
-                  <Button variant="outline" onClick={() => router.push("/positions")}>
-                    Positions
-                  </Button>
-                  <Button variant="outline" onClick={() => router.push("/charts")}>
-                    Charts
-                  </Button>
-                  <Button variant="outline" onClick={logout}>
-                    Logout
-                  </Button>
                 </CardContent>
               </Card>
             </div>
 
             {/* Send STX Form */}
             <div className="md:col-span-2">
-              <Card className="border-border bg-card">
+              <Card className="border-border bg-card shadow">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Send className="h-5 w-5 text-primary" />
@@ -287,6 +254,7 @@ export default function WalletPage() {
                           value={recipientAddress}
                           onChange={(e) => setRecipientAddress(e.target.value)}
                           disabled={isSending}
+                          className="bg-background border-border"
                         />
                       </div>
 
@@ -299,6 +267,7 @@ export default function WalletPage() {
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
                           disabled={isSending}
+                          className="bg-background border-border"
                         />
                         <p className="text-xs text-muted-foreground">
                           Available: {(balance / 1_000_000).toFixed(2)} STX
@@ -311,7 +280,7 @@ export default function WalletPage() {
                         onClick={handleSendStx}
                         disabled={isSending || !recipientAddress || !amount}
                         size="lg"
-                        className="flex-1"
+                        className="flex-1 bg-primary hover:bg-primary/90"
                       >
                         {isSending ? (
                           <>
@@ -334,7 +303,7 @@ export default function WalletPage() {
                         }}
                         size="lg"
                         disabled={isSending}
-                        className="flex-1"
+                        className="flex-1 border-border hover:bg-secondary"
                       >
                         Clear
                       </Button>
@@ -345,7 +314,7 @@ export default function WalletPage() {
 
               {/* Transaction Status */}
               {error && (
-                <Card className="border-destructive/50 bg-destructive/10 mt-6">
+                <Card className="border-destructive/50 bg-destructive/10 mt-6 shadow">
                   <CardContent className="p-4">
                     <p className="text-sm text-destructive">{error}</p>
                   </CardContent>
@@ -353,7 +322,7 @@ export default function WalletPage() {
               )}
 
               {success && (
-                <Card className="border-green-500/50 bg-green-500/10 mt-6">
+                <Card className="border-green-500/50 bg-green-500/10 mt-6 shadow">
                   <CardContent className="p-4">
                     <p className="text-sm text-green-500">{success}</p>
                     {lastTxId && (
@@ -366,7 +335,7 @@ export default function WalletPage() {
               )}
 
               {/* Wallet Address Full View */}
-              <Card className="border-border bg-card mt-6">
+              <Card className="border-border bg-card mt-6 shadow">
                 <CardHeader>
                   <CardTitle>Full Wallet Address</CardTitle>
                   <CardDescription>Complete wallet address for receiving funds</CardDescription>
@@ -386,6 +355,6 @@ export default function WalletPage() {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   )
 }

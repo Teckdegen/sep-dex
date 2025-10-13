@@ -4,22 +4,20 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { useAllPrices } from "@/lib/price-feed/hooks"
-import { checkLiquidations } from "@/lib/trading/position-manager" // Import checkLiquidations
-import { Loader2, LogOut, Wallet, TrendingUp } from "lucide-react"
+import { checkLiquidations } from "@/lib/trading/position-manager"
+import { Loader2, TrendingUp, BarChart3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TradingForm } from "@/components/trading/trading-form"
 import { PriceCard } from "@/components/trading/price-card"
 import { PriceChart } from "@/components/trading/price-chart"
-import { getStacksBalance } from "@/lib/blockchain/stacks"
+import { AppLayout } from "@/components/layout/app-layout"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 
 export default function TradePage() {
-  const { user, isAuthenticated, isLoading, logout, getUserWalletBalance } = useAuth()
+  const { user, isAuthenticated, isLoading, logout } = useAuth()
   const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices()
   const router = useRouter()
   const [selectedAsset, setSelectedAsset] = useState<SupportedAsset>("BTC")
-  const [walletBalance, setWalletBalance] = useState<number>(0)
-  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
 
   useEffect(() => {
     console.log("[v0] Trade page - auth state:", { user, isAuthenticated, isLoading })
@@ -28,18 +26,6 @@ export default function TradePage() {
       router.push("/")
     }
   }, [isAuthenticated, isLoading, router, user])
-
-  useEffect(() => {
-    if (user?.walletAddress) {
-      loadWalletBalance()
-      
-      // Set up automatic balance refresh every 10 seconds
-      const balanceInterval = setInterval(loadWalletBalance, 10000)
-      
-      // Clean up interval on component unmount
-      return () => clearInterval(balanceInterval)
-    }
-  }, [user])
 
   // Add effect for checking liquidations every 30 seconds
   useEffect(() => {
@@ -67,74 +53,52 @@ export default function TradePage() {
     return () => clearInterval(liquidationInterval);
   }, [user, prices]);
 
-  async function loadWalletBalance() {
-    if (!user?.walletAddress) return
-
-    try {
-      setIsLoadingBalance(true)
-      const balance = await getStacksBalance(user.walletAddress)
-      setWalletBalance(balance)
-    } catch (error) {
-      console.error("[v0] Failed to load wallet balance:", error)
-    } finally {
-      setIsLoadingBalance(false)
-    }
-  }
-
   if (isLoading || !user) {
     console.log("[v0] Trade page - showing loading state")
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AppLayout walletAddress={user?.walletAddress || ""}>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
     )
   }
 
   console.log("[v0] Trade page - rendering content", { prices, pricesLoading, pricesError })
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container mx-auto flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-foreground">SEP DEX</h1>
-          <div className="flex items-center gap-4">
-            <Button onClick={() => router.push("/positions")} variant="outline" size="sm">
-              Positions
-            </Button>
-            <Button onClick={() => router.push("/charts")} variant="outline" size="sm">
-              Charts
-            </Button>
-            <Button onClick={() => router.push("/wallet")} variant="outline" size="sm">
-              <Wallet className="mr-2 h-4 w-4" />
-              Wallet
-            </Button>
-            <div className="text-sm text-muted-foreground">
-              <span className="text-foreground">
-                {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
-              </span>
-              <span className="ml-2">
-                ({isLoadingBalance ? (
-                  <Loader2 className="inline h-3 w-3 animate-spin" />
-                ) : (
-                  `${(walletBalance / 1_000_000).toFixed(2)} STX`
-                )})
-              </span>
-            </div>
-            <Button onClick={logout} variant="outline" size="sm">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <AppLayout walletAddress={user.walletAddress}>
       <div className="container mx-auto p-4">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-foreground">Trading Dashboard</h2>
+          <p className="text-muted-foreground">Open and manage your perpetual futures positions</p>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left Column - Prices and Chart */}
-          <div className="space-y-6">
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-foreground">Live Prices</h2>
+          <div className="space-y-6 lg:col-span-2">
+            {/* Price Chart */}
+            <div className="bg-card border border-border rounded-lg p-4 shadow">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                  <TrendingUp className="h-5 w-5" />
+                  {selectedAsset} Price Chart
+                </h2>
+                <div className="text-right">
+                  <div className="text-lg font-bold text-foreground">
+                    {prices && prices[selectedAsset] ? `$${prices[selectedAsset].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Loading..."}
+                  </div>
+                </div>
+              </div>
+              <PriceChart symbol={selectedAsset} />
+            </div>
+
+            {/* Live Prices */}
+            <div className="bg-card border border-border rounded-lg p-4 shadow">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+                <BarChart3 className="h-5 w-5" />
+                Live Prices
+              </h2>
               {pricesLoading ? (
                 <div className="flex justify-center p-8">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -144,34 +108,35 @@ export default function TradePage() {
                   Failed to load prices: {pricesError}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {prices &&
                     Object.entries(prices).map(([symbol, price]) => (
-                      <div key={symbol} onClick={() => setSelectedAsset(symbol as SupportedAsset)} className="cursor-pointer">
+                      <div 
+                        key={symbol} 
+                        onClick={() => setSelectedAsset(symbol as SupportedAsset)} 
+                        className={`cursor-pointer rounded-lg border p-3 transition-all hover:shadow-md ${
+                          selectedAsset === symbol 
+                            ? "border-primary bg-primary/10" 
+                            : "border-border bg-secondary/30 hover:bg-secondary/50"
+                        }`}
+                      >
                         <PriceCard symbol={symbol as any} price={price} />
                       </div>
                     ))}
                 </div>
               )}
             </div>
-
-            {/* Price Chart */}
-            <div>
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-                <TrendingUp className="h-5 w-5" />
-                {selectedAsset} Price Chart
-              </h2>
-              <PriceChart symbol={selectedAsset} />
-            </div>
           </div>
 
-          {/* Middle Column - Trading Form */}
-          <div className="lg:col-span-2">
-            <h2 className="mb-4 text-lg font-semibold text-foreground">Open Position</h2>
-            <TradingForm userId={user.id} />
+          {/* Right Column - Trading Form */}
+          <div>
+            <div className="bg-card border border-border rounded-lg p-4 shadow sticky top-20">
+              <h2 className="mb-4 text-lg font-semibold text-foreground">Open Position</h2>
+              <TradingForm userId={user.id} />
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   )
 }

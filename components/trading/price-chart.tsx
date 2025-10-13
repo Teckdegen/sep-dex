@@ -52,7 +52,8 @@ export function PriceChart({ symbol }: PriceChartProps) {
     }
 
     fetchPriceHistory()
-    const interval = setInterval(fetchPriceHistory, 60000) // Refresh every 60 seconds
+    // Refresh every 5 minutes (300000 ms) instead of 60 seconds
+    const interval = setInterval(fetchPriceHistory, 300000)
 
     return () => clearInterval(interval)
   }, [symbol, timeRange])

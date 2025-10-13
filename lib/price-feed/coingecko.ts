@@ -234,7 +234,7 @@ async function getPriceHistoryFromBinance(asset: string, days: number): Promise<
     // Determine interval based on days
     let interval = "1d" // Default to daily
     if (days <= 1) {
-      interval = "1h" // Hourly for 1 day or less
+      interval = "5m" // 5-minute intervals for 1 day
     } else if (days <= 7) {
       interval = "1h" // Hourly for 7 days or less
     } else if (days <= 30) {

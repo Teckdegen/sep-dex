@@ -130,6 +130,13 @@ export async function createLocalWallet(userName: string): Promise<User> {
   console.log("[v0] Creating local Stacks wallet for:", userName)
   
   try {
+    // Check if user already has a local wallet
+    const existingUser = getUser()
+    if (existingUser && existingUser.subOrgId === "local-wallet") {
+      console.log("[v0] User already has a local wallet:", existingUser.walletAddress)
+      return existingUser
+    }
+    
     // Generate a new Stacks private key
     const privateKey = randomPrivateKey()
     const publicKey = privateKeyToPublic(privateKey)

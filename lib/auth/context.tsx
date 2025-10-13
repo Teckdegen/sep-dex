@@ -189,6 +189,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // If login fails or no existing user, create a new wallet
+      // But first check if user already has a local wallet
+      const existingLocalUser = getUser()
+      if (existingLocalUser && existingLocalUser.subOrgId === "local-wallet") {
+        setUser(existingLocalUser)
+        console.log("[v0] Using existing local wallet:", existingLocalUser.walletAddress)
+        return existingLocalUser
+      }
+
       return await createWalletWithPasskey(userName || "User")
     } finally {
       setIsLoading(false)

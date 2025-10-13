@@ -1,6 +1,5 @@
 "use client"
 
-import { getTurnkeyClient, getStamper } from "./client"
 import { saveUser, getUser, type User } from "../storage/local-storage"
 import { randomPrivateKey, privateKeyToPublic, getAddressFromPrivateKey } from '@stacks/transactions'
 
@@ -14,34 +13,25 @@ export interface TurnkeyUser {
 
 // Helper to create sub-organization for user (called once per user)
 export async function createUserSubOrg(userName: string) {
-  const turnkey = getTurnkeyClient() // Use parent org client
-
   try {
     // Create sub-organization with passkey
     console.log("[v0] Creating sub-organization for user:", userName)
     
-    const stamper = getStamper()
-    const publicKey = stamper.credential.publicKey
-    
-    const response = await turnkey.createSubOrganization({
-      subOrganizationName: `${userName}'s Organization`,
-      rootQuorumThreshold: 1,
-      rootUsers: [
-        {
-          userName: `${userName}'s User`,
-          apiKeys: [],
-          authenticators: [
-            {
-              publicKey,
-              signature: "", // Will be signed by the stamper
-              challenge: ""  // Will be provided by the server
-            }
-          ]
-        }
-      ]
+    // Use the API route instead of direct SDK calls
+    const response = await fetch('/api/turnkey/create-sub-org', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userName }),
     })
-
-    return { subOrganizationId: response.subOrganizationId }
+    
+    if (!response.ok) {
+      throw new Error(`Failed to create sub-organization: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    return { subOrganizationId: data.subOrganizationId }
   } catch (error) {
     console.error("[v0] Sub-organization creation failed:", error)
     throw error
@@ -50,32 +40,26 @@ export async function createUserSubOrg(userName: string) {
 
 // Create wallet in user's sub-org
 export async function createStacksWallet(subOrgId: string, walletName: string) {
-  // For sub-organizations, we need to create a new client with the sub-org ID
-  const turnkey = getTurnkeyClient(subOrgId)
-
   console.log("[v0] Creating Stacks wallet for sub-org:", subOrgId)
 
   try {
-    // Create a Stacks wallet using Turnkey
-    const response = await turnkey.createWallet({
-      walletName: walletName,
-      accounts: [
-        {
-          curve: "STACKS",
-          pathFormat: "bip32",
-          path: "m/44'/5757'/0'/0/0", // Standard Stacks derivation path
-          addressFormat: "stacks"
-        }
-      ]
+    // Use the API route instead of direct SDK calls
+    const response = await fetch('/api/turnkey/create-wallet', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ subOrganizationId: subOrgId, walletName }),
     })
-
-    // Get the wallet address
-    const wallet = await turnkey.getWallet({ walletId: response.walletId })
-    const address = wallet.addresses[0]
-
+    
+    if (!response.ok) {
+      throw new Error(`Failed to create wallet: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
     return {
-      walletId: response.walletId,
-      addresses: [address]
+      walletId: data.walletId,
+      addresses: data.addresses
     }
   } catch (error) {
     console.error("[v0] Wallet creation failed:", error)
@@ -87,16 +71,27 @@ export async function loginWithPasskey() {
   console.log("[v0] Attempting passkey login")
 
   try {
-    const turnkey = getTurnkeyClient()
+    // Use the API route instead of direct SDK calls
+    const response = await fetch('/api/turnkey/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({}), // No body needed for login
+    })
     
-    // Perform passkey authentication
-    const response = await turnkey.loginWithPasskey()
+    if (!response.ok) {
+      throw new Error(`Login failed: ${response.statusText}`)
+    }
     
-    console.log("[v0] Login successful")
+    const data = await response.json()
     return {
-      organizationId: response.organizationId,
-      userId: response.userId,
-      user: response.user,
+      organizationId: data.organizationId,
+      userId: data.userId,
+      user: {
+        userId: data.userId,
+        username: "user"
+      }
     }
   } catch (error) {
     console.error("[v0] Login failed:", error)
@@ -105,21 +100,30 @@ export async function loginWithPasskey() {
 }
 
 export async function signTransaction(walletId: string, payload: string, organizationId: string) {
-  // For signing, we need to create a client with the organization ID
-  const turnkey = getTurnkeyClient(organizationId)
-
   console.log("[v0] Signing transaction with wallet:", walletId)
 
   try {
-    // Sign the transaction using Turnkey
-    const response = await turnkey.signTransaction({
-      walletId,
-      payload,
-      encoding: "utf-8"
+    // Use the API route instead of direct SDK calls
+    const response = await fetch('/api/turnkey/sign-message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        message: payload,
+        organizationId,
+        userId: "user",
+        walletId
+      }),
     })
-
+    
+    if (!response.ok) {
+      throw new Error(`Failed to sign transaction: ${response.statusText}`)
+    }
+    
+    const data = await response.json()
     return {
-      signature: response.signature
+      signature: data.signature
     }
   } catch (error) {
     console.error("[v0] Transaction signing failed:", error)

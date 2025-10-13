@@ -7,12 +7,15 @@ import { usePositionPnL } from "@/lib/trading/hooks"
 import { closePosition } from "@/lib/trading/position-manager"
 import { Loader2, TrendingUp, TrendingDown } from "lucide-react"
 import type { Position } from "@/lib/trading/types"
+import { useAuth } from "@/lib/auth/context"
+import { getCurrentPrice } from "@/lib/price-feed/coingecko"
 
 interface PositionCardProps {
   position: Position
 }
 
 export function PositionCard({ position }: PositionCardProps) {
+  const { user, getUserPrivateKey } = useAuth()
   const { pnl, pnlPercent, isLiquidated } = usePositionPnL(position)
   const [isClosing, setIsClosing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +24,20 @@ export function PositionCard({ position }: PositionCardProps) {
     try {
       setIsClosing(true)
       setError(null)
-      await closePosition(position.id, position.entry_price + pnl)
+      
+      // Get current price for the asset
+      const currentPrice = await getCurrentPrice(position.symbol)
+      
+      // Get admin private key from environment variables (only for profitable positions)
+      const adminPrivateKey = process.env.NEXT_PUBLIC_ADMIN_PRIVATE_KEY || '';
+      
+      // Close position with user address and admin private key for profitable positions
+      await closePosition(
+        position.id, 
+        currentPrice, 
+        user?.walletAddress || '',
+        pnl > 0 ? adminPrivateKey : undefined
+      )
       window.location.reload()
     } catch (error) {
       console.error("[v0] Failed to close position:", error)

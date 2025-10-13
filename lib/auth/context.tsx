@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { getUser, clearUser, type User } from "../storage/local-storage"
-import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage, createLocalWallet, getLocalWalletPrivateKey } from "../turnkey/service"
+import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage, createLocalWallet, getLocalWalletPrivateKey, getTurnkeyWalletPrivateKey } from "../turnkey/service"
 import { depositStx } from "../stacks-client" // Import Stacks client
+import { getStacksBalance } from "../blockchain/stacks"
 
 interface AuthContextType {
   user: User | null
@@ -16,6 +17,8 @@ interface AuthContextType {
   depositCollateral: (amount: number) => Promise<string> // New function for depositing to contract
   createWalletWithPasskey: (userName: string) => Promise<User> // Simplified one-time wallet creation
   createLocalWallet: (userName: string) => Promise<User> // Local wallet creation
+  getUserWalletBalance: () => Promise<number> // Get user's wallet balance
+  getUserPrivateKey: () => string // Get user's private key
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -116,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Check if this is a local wallet
       const isLocalWallet = user.subOrgId === "local-wallet"
-      let privateKey = process.env.ADMIN_PRIVATE_KEY!
+      let privateKey: string
 
       if (isLocalWallet) {
         // For local wallets, get the private key from localStorage
@@ -127,10 +130,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           throw new Error("Local wallet private key not found")
         }
+      } else {
+        // For Turnkey wallets, get the private key from Turnkey service
+        // In a real implementation, this would use Turnkey's signing API
+        const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
+        if (turnkeyPrivateKey) {
+          // Ensure private key has the correct format for Stacks
+          privateKey = turnkeyPrivateKey.startsWith('0x') ? turnkeyPrivateKey : `0x${turnkeyPrivateKey}`
+        } else {
+          throw new Error("Turnkey wallet private key not found")
+        }
       }
 
-      // Use Turnkey to sign the deposit transaction
-      // Note: This assumes Turnkey SDK supports Stacks signing - adjust as needed
+      // Use user's private key to sign the deposit transaction
       const txId = await depositStx(amount, user.walletAddress, privateKey)
       console.log("[v0] Collateral deposited:", txId)
       return txId
@@ -192,6 +204,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Get user's wallet balance
+  async function getUserWalletBalance(): Promise<number> {
+    if (!user?.walletAddress) {
+      return 0
+    }
+
+    try {
+      const balance = await getStacksBalance(user.walletAddress)
+      return balance
+    } catch (error) {
+      console.error("[v0] Failed to get user wallet balance:", error)
+      return 0
+    }
+  }
+
+  // Get user's private key
+  function getUserPrivateKey(): string {
+    if (!user) {
+      throw new Error("User not authenticated")
+    }
+
+    // Check if this is a local wallet
+    const isLocalWallet = user.subOrgId === "local-wallet"
+
+    if (isLocalWallet) {
+      // For local wallets, get the private key from localStorage
+      const localPrivateKey = getLocalWalletPrivateKey()
+      if (localPrivateKey) {
+        // Ensure private key has the correct format for Stacks
+        return localPrivateKey.startsWith('0x') ? localPrivateKey : `0x${localPrivateKey}`
+      } else {
+        throw new Error("Local wallet private key not found")
+      }
+    } else {
+      // For Turnkey wallets, get the private key from Turnkey service
+      const turnkeyPrivateKey = getTurnkeyWalletPrivateKey()
+      if (turnkeyPrivateKey) {
+        // Ensure private key has the correct format for Stacks
+        return turnkeyPrivateKey.startsWith('0x') ? turnkeyPrivateKey : `0x${turnkeyPrivateKey}`
+      } else {
+        throw new Error("Turnkey wallet private key not found")
+      }
+    }
+  }
+
   function logout() {
     setUser(null)
     clearUser()
@@ -213,6 +270,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         depositCollateral,
         createWalletWithPasskey,
         createLocalWallet: createLocalWalletAndSetUser,
+        getUserWalletBalance,
+        getUserPrivateKey,
       }}
     >
       {children}

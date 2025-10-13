@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,16 +21,32 @@ interface TradingFormProps {
 }
 
 export function TradingForm({ userId }: TradingFormProps) {
-  const { user, depositCollateral } = useAuth()
+  const { user, depositCollateral, getUserWalletBalance, getUserPrivateKey } = useAuth()
   const [asset, setAsset] = useState<SupportedAsset>("BTC")
   const [side, setSide] = useState<PositionSide>("long")
   const [leverage, setLeverage] = useState(10)
   const [collateral, setCollateral] = useState(100) // Changed from USD to STX
+  const [walletBalance, setWalletBalance] = useState<number>(0)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
   const { price, isLoading: priceLoading } = usePrice(asset)
+
+  useEffect(() => {
+    async function loadWalletBalance() {
+      if (user?.walletAddress) {
+        try {
+          const balance = await getUserWalletBalance()
+          setWalletBalance(balance / 1_000_000) // Convert from microSTX to STX
+        } catch (error) {
+          console.error("[v0] Failed to load wallet balance:", error)
+        }
+      }
+    }
+
+    loadWalletBalance()
+  }, [user, getUserWalletBalance])
 
   const preview = price
     ? computePosition({
@@ -55,6 +71,12 @@ export function TradingForm({ userId }: TradingFormProps) {
       return
     }
 
+    // Validate collateral amount
+    if (collateral > walletBalance) {
+      setError(`Insufficient funds. Your wallet balance is ${walletBalance.toFixed(2)} STX.`)
+      return
+    }
+
     try {
       setIsCreating(true)
       setError(null)
@@ -62,11 +84,10 @@ export function TradingForm({ userId }: TradingFormProps) {
 
       console.log("[v0] Creating position with collateral deposit")
 
-      // First, deposit collateral on-chain (collateral is in STX)
-      const depositTxId = await depositCollateral(collateral)
-      console.log("[v0] Collateral deposited:", depositTxId)
+      // Get user's private key
+      const userPrivateKey = getUserPrivateKey();
 
-      // Then, create position off-chain in UI/local storage
+      // Create position with user's private key
       await createPosition({
         userId,
         userAddress: user.walletAddress,
@@ -75,7 +96,8 @@ export function TradingForm({ userId }: TradingFormProps) {
         entryPrice: price,
         collateral, // Store STX amount directly
         leverage,
-      })
+        privateKey: userPrivateKey
+      });
 
       setSuccess("Position opened successfully!")
 
@@ -155,6 +177,9 @@ export function TradingForm({ userId }: TradingFormProps) {
             step="1"
             className="bg-input"
           />
+          <div className="text-sm text-muted-foreground">
+            Wallet Balance: {walletBalance.toFixed(2)} STX
+          </div>
           {price && (
             <div className="text-sm text-muted-foreground">
               Value: ${(collateral * price).toFixed(2)} USD

@@ -24,8 +24,8 @@ export interface PriceData {
 
 // Get current price from CoinGecko
 export async function getCurrentPrice(asset: string): Promise<number> {
-  // Check cache first (60 second cache to reduce API calls)
-  const cached = getCachedPrice(asset, 60000)
+  // Check cache first (5 minute cache to reduce API calls and avoid rate limits)
+  const cached = getCachedPrice(asset, 300000)
   if (cached !== null) {
     console.log(`[v0] Using cached price for ${asset}: ${cached}`)
     return cached
@@ -43,10 +43,30 @@ export async function getCurrentPrice(asset: string): Promise<number> {
 
     if (!response.ok) {
       console.error(`[v0] CoinGecko API error: ${response.status}`)
+      
+      // If we hit rate limit, try to use any existing cached price
+      const existingCached = getCachedPrice(asset, 3600000) // Try with 1 hour cache
+      if (existingCached !== null) {
+        console.log(`[v0] Rate limited, using older cached price for ${asset}: ${existingCached}`)
+        return existingCached
+      }
+      
       return 0 // Return default price instead of throwing error
     }
 
     const data = await response.json()
+    
+    // Check if we got rate limited
+    if (data.status?.error_code === 429) {
+      console.error(`[v0] CoinGecko rate limit exceeded for ${asset}`)
+      const existingCached = getCachedPrice(asset, 3600000) // Try with 1 hour cache
+      if (existingCached !== null) {
+        console.log(`[v0] Rate limited, using older cached price for ${asset}: ${existingCached}`)
+        return existingCached
+      }
+      return 0
+    }
+    
     const price = data[coinGeckoId]?.usd
 
     if (!price) {
@@ -61,6 +81,14 @@ export async function getCurrentPrice(asset: string): Promise<number> {
     return price
   } catch (error) {
     console.error(`[v0] Failed to fetch price for ${asset}:`, error)
+    
+    // Try to use any existing cached price as fallback
+    const existingCached = getCachedPrice(asset, 3600000) // Try with 1 hour cache
+    if (existingCached !== null) {
+      console.log(`[v0] Error occurred, using older cached price for ${asset}: ${existingCached}`)
+      return existingCached
+    }
+    
     return 0 // Return default price instead of throwing error
   }
 }
@@ -113,14 +141,22 @@ export async function getPriceData(asset: string): Promise<PriceData> {
 }
 
 // Get price history for charts
-export async function getPriceHistory(asset: string, days = 1): Promise<Array<{ timestamp: number; price: number }>> {
+export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ timestamp: number; price: number }>> {
   const coinGeckoId = ASSET_TO_COINGECKO_ID[asset]
   if (!coinGeckoId) {
     throw new Error(`Unsupported asset: ${asset}`)
   }
 
   try {
-    const response = await fetch(`${COINGECKO_API}/coins/${coinGeckoId}/market_chart?vs_currency=usd&days=${days}`)
+    // Adjust interval based on days requested
+    let interval = "daily"
+    if (days <= 1) {
+      interval = "hourly"
+    } else if (days <= 7) {
+      interval = "hourly"
+    }
+
+    const response = await fetch(`${COINGECKO_API}/coins/${coinGeckoId}/market_chart?vs_currency=usd&days=${days}&interval=${interval}`)
 
     if (!response.ok) {
       throw new Error(`CoinGecko API error: ${response.status}`)

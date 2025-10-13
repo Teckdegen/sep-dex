@@ -46,6 +46,9 @@ export default function TradePage() {
         <div className="container mx-auto flex items-center justify-between p-4">
           <h1 className="text-2xl font-bold text-foreground">SEP DEX</h1>
           <div className="flex items-center gap-4">
+            <Button onClick={() => router.push("/charts")} variant="outline" size="sm">
+              Charts
+            </Button>
             <Button onClick={() => router.push("/wallet")} variant="outline" size="sm">
               <Wallet className="mr-2 h-4 w-4" />
               Wallet

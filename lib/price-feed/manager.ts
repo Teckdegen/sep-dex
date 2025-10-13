@@ -2,7 +2,7 @@ import { ASSET_TO_COINGECKO_ID, type SupportedAsset, type CachedPrice } from "./
 
 class PriceFeedManager {
   private memoryCache: Map<SupportedAsset, CachedPrice> = new Map()
-  private readonly MEMORY_CACHE_DURATION = 60000 // 60 seconds
+  private readonly MEMORY_CACHE_DURATION = 300000 // 5 minutes
 
   async getPrice(asset: SupportedAsset): Promise<number> {
     // Level 1: Memory cache (fastest)

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { priceFeedManager } from "./manager"
 import type { SupportedAsset } from "./types"
 
-export function usePrice(asset: SupportedAsset, refreshInterval = 2000) {
+export function usePrice(asset: SupportedAsset, refreshInterval = 30000) {
   const [price, setPrice] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +44,7 @@ export function usePrice(asset: SupportedAsset, refreshInterval = 2000) {
   return { price, isLoading, error }
 }
 
-export function useAllPrices(refreshInterval = 2000) {
+export function useAllPrices(refreshInterval = 60000) {
   const [prices, setPrices] = useState<Record<SupportedAsset, number> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

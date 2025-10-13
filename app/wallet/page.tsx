@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Wallet, ArrowDownToLine, ArrowUpFromLine, Copy, Check } from "lucide-react"
-import { getUserBalance } from "@/lib/blockchain/stacks"
+import { getUserBalance, getStacksBalance, sendStx } from "@/lib/blockchain/stacks"
 import { depositStx, withdrawStx } from "@/lib/blockchain/stacks"
 
 export default function WalletPage() {
@@ -18,6 +18,7 @@ export default function WalletPage() {
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
   const [depositAmount, setDepositAmount] = useState("")
   const [withdrawAmount, setWithdrawAmount] = useState("")
+  const [recipientAddress, setRecipientAddress] = useState("")
   const [isDepositing, setIsDepositing] = useState(false)
   const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -41,8 +42,8 @@ export default function WalletPage() {
 
     try {
       setIsLoadingBalance(true)
-      const contractBalance = await getUserBalance(user.walletAddress)
-      setBalance(contractBalance)
+      const stacksBalance = await getStacksBalance(user.walletAddress)
+      setBalance(stacksBalance)
     } catch (error) {
       console.error("[v0] Failed to load balance:", error)
     } finally {
@@ -78,7 +79,7 @@ export default function WalletPage() {
   }
 
   async function handleWithdraw() {
-    if (!user?.walletAddress || !withdrawAmount) return
+    if (!user?.walletAddress || !withdrawAmount || !recipientAddress) return
 
     try {
       setIsWithdrawing(true)
@@ -87,17 +88,18 @@ export default function WalletPage() {
 
       const amount = Number.parseFloat(withdrawAmount) * 1_000_000 // Convert to microSTX
 
-      console.log("[v0] Withdrawing STX:", amount)
+      console.log("[v0] Sending STX:", amount, "to", recipientAddress)
 
       // TODO: Get private key from Turnkey signing
-      const txId = await withdrawStx(amount, "")
+      const txId = await sendStx(amount, recipientAddress, "")
 
-      setSuccess(`Withdrawal successful! Transaction: ${txId}`)
+      setSuccess(`Transfer successful! Transaction: ${txId}`)
       setWithdrawAmount("")
+      setRecipientAddress("")
       await loadBalance()
     } catch (error) {
-      console.error("[v0] Withdrawal failed:", error)
-      setError(error instanceof Error ? error.message : "Withdrawal failed")
+      console.error("[v0] Transfer failed:", error)
+      setError(error instanceof Error ? error.message : "Transfer failed")
     } finally {
       setIsWithdrawing(false)
     }
@@ -125,9 +127,14 @@ export default function WalletPage() {
         <div className="mx-auto max-w-4xl space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold text-foreground">Wallet</h1>
-            <Button variant="outline" onClick={() => router.push("/trade")}>
-              Go to Trading
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => router.push("/charts")}>
+                Charts
+              </Button>
+              <Button variant="outline" onClick={() => router.push("/trade")}>
+                Go to Trading
+              </Button>
+            </div>
           </div>
 
           <Card className="border-border bg-card p-6">
@@ -145,13 +152,16 @@ export default function WalletPage() {
               </div>
 
               <div className="rounded-lg border border-border bg-muted/50 p-4">
-                <p className="text-sm text-muted-foreground">Contract Balance</p>
+                <p className="text-sm text-muted-foreground">Available Balance</p>
                 <p className="text-3xl font-bold text-foreground">
                   {isLoadingBalance ? (
                     <Loader2 className="h-8 w-8 animate-spin" />
                   ) : (
                     `${(balance / 1_000_000).toFixed(2)} STX`
                   )}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  This is your actual wallet balance. Deposit funds to start trading.
                 </p>
               </div>
             </div>
@@ -189,7 +199,7 @@ export default function WalletPage() {
                 </Button>
 
                 <p className="text-xs text-muted-foreground">
-                  Deposit STX to your trading account to start opening positions
+                  Fund your in-app wallet with STX to start trading
                 </p>
               </div>
             </Card>
@@ -198,7 +208,19 @@ export default function WalletPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <ArrowUpFromLine className="h-5 w-5 text-red-500" />
-                  <h2 className="text-xl font-semibold text-foreground">Withdraw</h2>
+                  <h2 className="text-xl font-semibold text-foreground">Send STX</h2>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="recipient-address">Recipient Address</Label>
+                  <Input
+                    id="recipient-address"
+                    type="text"
+                    placeholder="ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
+                    value={recipientAddress}
+                    onChange={(e) => setRecipientAddress(e.target.value)}
+                    disabled={isWithdrawing}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -215,21 +237,21 @@ export default function WalletPage() {
 
                 <Button
                   onClick={handleWithdraw}
-                  disabled={isWithdrawing || !withdrawAmount}
+                  disabled={isWithdrawing || !withdrawAmount || !recipientAddress}
                   variant="destructive"
                   className="w-full"
                 >
                   {isWithdrawing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Withdrawing...
+                      Sending...
                     </>
                   ) : (
-                    "Withdraw STX"
+                    "Send STX"
                   )}
                 </Button>
 
-                <p className="text-xs text-muted-foreground">Withdraw STX from your trading account to your wallet</p>
+                <p className="text-xs text-muted-foreground">Send STX from your wallet to another address</p>
               </div>
             </Card>
           </div>

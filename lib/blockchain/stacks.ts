@@ -78,6 +78,12 @@ export async function withdrawStx(amount: number, senderKey: string): Promise<st
 
 export async function getUserBalance(userAddress: string): Promise<number> {
   try {
+    // Validate the address format
+    const { validateStacksAddress } = await import('@stacks/transactions')
+    if (!validateStacksAddress(userAddress)) {
+      throw new Error(`Invalid Stacks address: ${userAddress}`)
+    }
+
     const result = await fetchCallReadOnlyFunction({
       contractAddress: CONTRACT_ADDRESS,
       contractName: CONTRACT_NAME,
@@ -230,5 +236,47 @@ export async function getTransactionStatus(txId: string): Promise<string> {
   } catch (error) {
     console.error("[v0] Failed to get transaction status:", error)
     return "pending"
+  }
+}
+
+// Send STX directly from one wallet to another
+export async function sendStx(amount: number, recipient: string, senderKey: string): Promise<string> {
+  try {
+    const { makeSTXTokenTransfer, broadcastTransaction, AnchorMode } = await import('@stacks/transactions')
+    
+    const txOptions = {
+      recipient,
+      amount,
+      senderKey,
+      network: getNetwork(),
+      anchorMode: AnchorMode.Any,
+    }
+
+    const transaction = await makeSTXTokenTransfer(txOptions)
+    const broadcastResponse = await broadcastTransaction({
+      transaction: transaction,
+      network: getNetwork()
+    })
+
+    if ('error' in broadcastResponse) {
+      throw new Error(`Transaction failed: ${broadcastResponse.error}`)
+    }
+
+    return broadcastResponse.txid
+  } catch (error) {
+    console.error("[v0] Failed to send STX:", error)
+    throw error
+  }
+}
+
+// Get actual Stacks wallet balance (not contract balance)
+export async function getStacksBalance(address: string): Promise<number> {
+  try {
+    const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/address/${address}/balances`)
+    const data = await response.json()
+    return data.stx.balance ? Number(data.stx.balance) : 0
+  } catch (error) {
+    console.error("[v0] Failed to get Stacks balance:", error)
+    return 0
   }
 }

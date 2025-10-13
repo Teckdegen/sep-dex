@@ -2,6 +2,8 @@ import { computePosition, calculateLiquidationPrice } from "./calculator"
 import type { Position, PositionSide } from "./types"
 import type { SupportedAsset } from "../price-feed/types"
 import { getPositions, savePosition, updatePosition } from "../storage/local-storage"
+import { depositStx, adminPayout } from "../stacks-client"
+import { getUserBySubOrgId } from "../turnkey/service"
 
 export async function createPosition(params: {
   userId: string
@@ -11,8 +13,9 @@ export async function createPosition(params: {
   entryPrice: number
   collateral: number
   leverage: number
+  privateKey: string
 }): Promise<Position> {
-  const { userId, userAddress, symbol, side, entryPrice, collateral, leverage } = params
+  const { userId, userAddress, symbol, side, entryPrice, collateral, leverage, privateKey } = params
 
   // Calculate position details
   const size = (collateral * leverage) / entryPrice
@@ -40,9 +43,8 @@ export async function createPosition(params: {
     const collateralMicroStx = Math.floor(collateral * 1_000_000)
     console.log("[v0] Depositing collateral on-chain:", collateralMicroStx)
 
-    // TODO: Get private key from Turnkey for signing
-    // For now, we'll save the position and mark it as pending deposit
-    // await depositStx(collateralMicroStx, userAddress, privateKey)
+    // Deposit collateral using user's private key
+    await depositStx(collateralMicroStx, userAddress, privateKey)
 
     savePosition(position)
     return position
@@ -65,6 +67,7 @@ export async function getAllPositions(userId: string): Promise<Position[]> {
 export async function closePosition(
   positionId: string,
   currentPrice: number,
+  userAddress: string,
   adminPrivateKey?: string,
 ): Promise<Position> {
   const positions = getPositions()
@@ -91,8 +94,8 @@ export async function closePosition(
       const profitMicroStx = Math.floor(result.pnl * 1_000_000)
       console.log("[v0] Triggering admin payout:", profitMicroStx)
 
-      // TODO: Get user address and call admin payout
-      // await adminPayout(userAddress, profitMicroStx, adminPrivateKey)
+      // Call admin payout to send profits to user
+      await adminPayout(userAddress, profitMicroStx, adminPrivateKey)
     } catch (error) {
       console.error("[v0] Admin payout failed:", error)
     }
@@ -131,7 +134,9 @@ export async function checkLiquidations(
 
     if (result.isLiquidated) {
       console.log("[v0] Position liquidated:", position.id)
-      await closePosition(position.id, currentPrice, adminPrivateKey)
+      // For liquidations, we don't need admin payout, so we pass undefined for adminPrivateKey
+      // We pass an empty string for userAddress since we don't need it for liquidations
+      await closePosition(position.id, currentPrice, '', undefined)
     }
   }
 }

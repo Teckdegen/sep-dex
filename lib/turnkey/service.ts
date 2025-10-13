@@ -163,3 +163,19 @@ export async function createLocalWallet(userName: string): Promise<User> {
 export function getLocalWalletPrivateKey(): string | null {
   return localStorage.getItem('local-wallet-private-key')
 }
+
+// Get Turnkey wallet private key
+// In a real implementation, Turnkey would manage private keys
+// For this mock, we generate and store real private keys
+export function getTurnkeyWalletPrivateKey(): string | null {
+  // Check if we already have a private key for this Turnkey wallet
+  const turnkeyPrivateKey = localStorage.getItem('turnkey-wallet-private-key')
+  if (turnkeyPrivateKey) {
+    return turnkeyPrivateKey
+  }
+  
+  // Generate a new real private key for Turnkey wallets
+  const newPrivateKey = randomPrivateKey()
+  localStorage.setItem('turnkey-wallet-private-key', newPrivateKey)
+  return newPrivateKey
+}

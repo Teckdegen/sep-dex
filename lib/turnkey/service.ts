@@ -161,15 +161,26 @@ export async function createUserInStorage(subOrgId: string, walletAddress: strin
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid hex string (64 or 65 characters)
-    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
+    // Handle different key lengths:
+    // - 64 characters: standard private key
+    // - 65 characters: may have extra digit, take last 64 characters
+    // - 66 characters: may have 0x prefix + 64 characters
+    if (formattedPrivateKey.length === 65) {
+      // For 65-character keys, take the last 64 characters
+      formattedPrivateKey = formattedPrivateKey.slice(1);
+    } else if (formattedPrivateKey.length === 66) {
+      // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
+      formattedPrivateKey = formattedPrivateKey.slice(2);
+    } else if (formattedPrivateKey.length !== 64) {
+      // If not 64 characters after processing, it's invalid
       console.error("[v0] Invalid Turnkey private key format:", formattedPrivateKey);
       throw new Error("Invalid Turnkey private key format");
     }
     
-    // If it's 65 characters, check if the first character is '0' and remove it if so
-    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
-      formattedPrivateKey = formattedPrivateKey.slice(1);
+    // Ensure it's a valid hex string
+    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+      console.error("[v0] Invalid Turnkey private key format:", formattedPrivateKey);
+      throw new Error("Invalid Turnkey private key format");
     }
     
     // Store WITHOUT 0x prefix
@@ -214,14 +225,24 @@ export async function createLocalWallet(userName: string): Promise<User> {
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid hex string (64 or 65 characters)
-    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
+    // Handle different key lengths:
+    // - 64 characters: standard private key
+    // - 65 characters: may have extra digit, take last 64 characters
+    // - 66 characters: may have 0x prefix + 64 characters
+    if (formattedPrivateKey.length === 65) {
+      // For 65-character keys, take the last 64 characters
+      formattedPrivateKey = formattedPrivateKey.slice(1);
+    } else if (formattedPrivateKey.length === 66) {
+      // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
+      formattedPrivateKey = formattedPrivateKey.slice(2);
+    } else if (formattedPrivateKey.length !== 64) {
+      // If not 64 characters after processing, it's invalid
       throw new Error("Generated invalid private key format");
     }
     
-    // If it's 65 characters, check if the first character is '0' and remove it if so
-    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
-      formattedPrivateKey = formattedPrivateKey.slice(1);
+    // Ensure it's a valid hex string
+    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+      throw new Error("Generated invalid private key format");
     }
     
     // Create user object with real Stacks address
@@ -261,14 +282,24 @@ export async function importLocalWallet(userName: string, privateKey: string): P
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid hex string (64 or 65 characters)
-    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
-      throw new Error("Invalid private key format. Must be a 64 or 65-character hexadecimal string.");
+    // Handle different key lengths:
+    // - 64 characters: standard private key
+    // - 65 characters: may have extra digit, take last 64 characters
+    // - 66 characters: may have 0x prefix + 64 characters
+    if (formattedPrivateKey.length === 65) {
+      // For 65-character keys, take the last 64 characters
+      formattedPrivateKey = formattedPrivateKey.slice(1);
+    } else if (formattedPrivateKey.length === 66) {
+      // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
+      formattedPrivateKey = formattedPrivateKey.slice(2);
+    } else if (formattedPrivateKey.length !== 64) {
+      // If not 64 characters after processing, it's invalid
+      throw new Error("Invalid private key format. Must be a 64-character hexadecimal string.");
     }
     
-    // If it's 65 characters, check if the first character is '0' and remove it if so
-    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
-      formattedPrivateKey = formattedPrivateKey.slice(1);
+    // Ensure it's a valid hex string
+    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+      throw new Error("Invalid private key format. Must be a 64-character hexadecimal string.");
     }
     
     // For Stacks.js functions, we use the private key WITHOUT 0x prefix
@@ -310,15 +341,26 @@ export function getLocalWalletPrivateKey(): string | null {
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid hex string (64 or 65 characters)
-    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
+    // Handle different key lengths:
+    // - 64 characters: standard private key
+    // - 65 characters: may have extra digit, take last 64 characters
+    // - 66 characters: may have 0x prefix + 64 characters
+    if (formattedPrivateKey.length === 65) {
+      // For 65-character keys, take the last 64 characters
+      formattedPrivateKey = formattedPrivateKey.slice(1);
+    } else if (formattedPrivateKey.length === 66) {
+      // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
+      formattedPrivateKey = formattedPrivateKey.slice(2);
+    } else if (formattedPrivateKey.length !== 64) {
+      // If not 64 characters after processing, it's invalid
       console.error("[v0] Invalid private key format in local storage:", formattedPrivateKey);
       return null;
     }
     
-    // If it's 65 characters, check if the first character is '0' and remove it if so
-    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
-      formattedPrivateKey = formattedPrivateKey.slice(1);
+    // Ensure it's a valid hex string
+    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+      console.error("[v0] Invalid private key format in local storage:", formattedPrivateKey);
+      return null;
     }
     
     // Return WITHOUT 0x prefix as expected by Stacks.js
@@ -342,15 +384,26 @@ export function getTurnkeyWalletPrivateKey(): string | null {
       formattedPrivateKey = formattedPrivateKey.slice(2);
     }
     
-    // Ensure it's a valid hex string (64 or 65 characters)
-    if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
+    // Handle different key lengths:
+    // - 64 characters: standard private key
+    // - 65 characters: may have extra digit, take last 64 characters
+    // - 66 characters: may have 0x prefix + 64 characters
+    if (formattedPrivateKey.length === 65) {
+      // For 65-character keys, take the last 64 characters
+      formattedPrivateKey = formattedPrivateKey.slice(1);
+    } else if (formattedPrivateKey.length === 66) {
+      // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
+      formattedPrivateKey = formattedPrivateKey.slice(2);
+    } else if (formattedPrivateKey.length !== 64) {
+      // If not 64 characters after processing, it's invalid
       console.error("[v0] Invalid Turnkey private key format in local storage:", formattedPrivateKey);
       return null;
     }
     
-    // If it's 65 characters, check if the first character is '0' and remove it if so
-    if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
-      formattedPrivateKey = formattedPrivateKey.slice(1);
+    // Ensure it's a valid hex string
+    if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+      console.error("[v0] Invalid Turnkey private key format in local storage:", formattedPrivateKey);
+      return null;
     }
     
     // Return WITHOUT 0x prefix as expected by Stacks.js

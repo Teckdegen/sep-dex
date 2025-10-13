@@ -269,14 +269,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           formattedPrivateKey = formattedPrivateKey.slice(2);
         }
         
-        // Ensure it's a valid hex string (64 or 65 characters)
-        if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
+        // Handle different key lengths:
+        // - 64 characters: standard private key
+        // - 65 characters: may have extra digit, take last 64 characters
+        // - 66 characters: may have 0x prefix + 64 characters
+        if (formattedPrivateKey.length === 65) {
+          // For 65-character keys, take the last 64 characters
+          formattedPrivateKey = formattedPrivateKey.slice(1);
+        } else if (formattedPrivateKey.length === 66) {
+          // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
+          formattedPrivateKey = formattedPrivateKey.slice(2);
+        } else if (formattedPrivateKey.length !== 64) {
+          // If not 64 characters after processing, it's invalid
           throw new Error("Invalid private key format in local storage");
         }
         
-        // If it's 65 characters, check if the first character is '0' and remove it if so
-        if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
-          formattedPrivateKey = formattedPrivateKey.slice(1);
+        // Ensure it's a valid hex string
+        if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+          throw new Error("Invalid private key format in local storage");
         }
         
         // Return WITHOUT 0x prefix as expected by Stacks.js
@@ -296,14 +306,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           formattedPrivateKey = formattedPrivateKey.slice(2);
         }
         
-        // Ensure it's a valid hex string (64 or 65 characters)
-        if (!/^[0-9a-fA-F]{64,65}$/.test(formattedPrivateKey)) {
+        // Handle different key lengths:
+        // - 64 characters: standard private key
+        // - 65 characters: may have extra digit, take last 64 characters
+        // - 66 characters: may have 0x prefix + 64 characters
+        if (formattedPrivateKey.length === 65) {
+          // For 65-character keys, take the last 64 characters
+          formattedPrivateKey = formattedPrivateKey.slice(1);
+        } else if (formattedPrivateKey.length === 66) {
+          // For 66-character keys, remove first 2 characters (likely 0x) and take next 64
+          formattedPrivateKey = formattedPrivateKey.slice(2);
+        } else if (formattedPrivateKey.length !== 64) {
+          // If not 64 characters after processing, it's invalid
           throw new Error("Invalid Turnkey private key format in local storage");
         }
         
-        // If it's 65 characters, check if the first character is '0' and remove it if so
-        if (formattedPrivateKey.length === 65 && formattedPrivateKey.startsWith('0')) {
-          formattedPrivateKey = formattedPrivateKey.slice(1);
+        // Ensure it's a valid hex string
+        if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
+          throw new Error("Invalid Turnkey private key format in local storage");
         }
         
         // Return WITHOUT 0x prefix as expected by Stacks.js

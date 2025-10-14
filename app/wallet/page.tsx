@@ -145,24 +145,30 @@ export default function WalletPage() {
         throw new Error("Invalid amount")
       }
 
-      // Check if user has enough balance
-      const amountMicroStx = Math.floor(amountFloat * 1_000_000)
-      if (amountMicroStx > balance) {
+      // Get fresh balance before checking
+      const currentBalance = await getStacksBalance(user.walletAddress)
+      console.log("[v0] Current balance:", currentBalance, "STX")
+
+      // Check if user has enough balance (amount is in STX, balance is in STX)
+      if (amountFloat > currentBalance) {
         throw new Error("Insufficient balance")
       }
 
       // Get user's private key
       const userPrivateKey = getUserPrivateKey()
 
-      console.log("[v0] Sending STX:", amountMicroStx, "to", recipientAddress)
+      console.log("[v0] Sending STX:", amountFloat, "STX to", recipientAddress)
 
-      // Send STX using user's private key
-      const txId = await sendStx(amountMicroStx, recipientAddress, userPrivateKey)
+      // Send STX using user's private key (amount is in STX, sendStx expects microSTX)
+      const txId = await sendStx(Math.floor(amountFloat * 1_000_000), recipientAddress, userPrivateKey)
 
       setSuccess(`Transfer successful! Transaction ID: ${txId}`)
       setRecipientAddress("")
       setAmount("")
       setLastTxId(txId) // Track transaction to monitor status
+      
+      // Update balance after successful transfer
+      setBalance(currentBalance - amountFloat)
       
       // Instead of immediately reloading balance, wait for transaction confirmation
       // The useEffect for lastTxId will handle balance updates

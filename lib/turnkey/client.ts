@@ -14,11 +14,18 @@ export function getTurnkeyClient(organizationId?: string) {
 
   // Get current hostname for rpId - same logic as layout.tsx
   const getRpId = () => {
+    if (typeof window === 'undefined') return 'localhost'
+
     const currentHostname = window.location.hostname
+    const currentPort = window.location.port
 
     // For localhost development
-    if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
-      return 'localhost'
+    if (currentHostname === 'localhost') {
+      return currentPort ? `${currentHostname}:${currentPort}` : currentHostname
+    }
+
+    if (currentHostname === '127.0.0.1') {
+      return currentPort ? `${currentHostname}:${currentPort}` : currentHostname
     }
 
     // For Vercel deployments - use the actual domain
@@ -32,7 +39,7 @@ export function getTurnkeyClient(organizationId?: string) {
       return envRpId
     }
 
-    // Fallback to current hostname
+    // Final fallback to current hostname
     return currentHostname
   }
 
@@ -73,10 +80,15 @@ export function getStamper() {
       if (typeof window === 'undefined') return 'localhost'
 
       const currentHostname = window.location.hostname
+      const currentPort = window.location.port
 
       // For localhost development
-      if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
-        return 'localhost'
+      if (currentHostname === 'localhost') {
+        return currentPort ? `${currentHostname}:${currentPort}` : currentHostname
+      }
+
+      if (currentHostname === '127.0.0.1') {
+        return currentPort ? `${currentHostname}:${currentPort}` : currentHostname
       }
 
       // For Vercel deployments - use the actual domain
@@ -90,10 +102,11 @@ export function getStamper() {
         return envRpId
       }
 
-      // Fallback to current hostname
+      // Final fallback to current hostname
       return currentHostname
     }
 
+    console.log("[v0] Initializing WebAuthn stamper with RP ID:", getRpId())
     stamper = new WebauthnStamper({
       rpId: getRpId(),
     })

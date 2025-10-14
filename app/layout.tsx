@@ -26,13 +26,18 @@ export default function RootLayout({
     }
 
     const currentHostname = window.location.hostname
+    const currentPort = window.location.port
 
     // For localhost development
-    if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
-      return 'localhost'
+    if (currentHostname === 'localhost') {
+      return currentPort ? `${currentHostname}:${currentPort}` : currentHostname
     }
 
-    // For Vercel deployments - use the actual domain
+    if (currentHostname === '127.0.0.1') {
+      return currentPort ? `${currentHostname}:${currentPort}` : currentHostname
+    }
+
+    // For Vercel deployments - use the exact domain
     if (currentHostname.endsWith('.vercel.app')) {
       return currentHostname
     }
@@ -43,7 +48,7 @@ export default function RootLayout({
       return envRpId
     }
 
-    // Fallback to current hostname
+    // Final fallback to current hostname
     return currentHostname
   }
 

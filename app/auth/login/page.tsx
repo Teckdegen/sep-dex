@@ -56,17 +56,30 @@ export default function LoginPage() {
       } else {
         // Use Turnkey with email-based passkey creation
         console.log("[v0] Creating Turnkey wallet with email passkey for:", userName)
+        console.log("[v0] Current domain:", typeof window !== 'undefined' ? window.location.hostname : 'unknown')
 
         // Initialize IndexedDB client for session management
-        await indexedDbClient?.init()
-        const publicKey = await indexedDbClient?.getPublicKey()
-
-        if (!publicKey) {
-          throw new Error("Failed to initialize IndexedDB client")
+        if (!indexedDbClient) {
+          throw new Error("IndexedDB client not available - check TurnkeyProvider setup")
         }
 
+        console.log("[v0] Initializing IndexedDB client...")
+        await indexedDbClient.init()
+        const publicKey = await indexedDbClient.getPublicKey()
+
+        if (!publicKey) {
+          throw new Error("Failed to get public key from IndexedDB client")
+        }
+
+        console.log("[v0] Got public key, length:", publicKey.length)
+
         // Create passkey first
-        const passkeyCredential = await passkeyClient?.createUserPasskey({
+        if (!passkeyClient) {
+          throw new Error("Passkey client not available")
+        }
+
+        console.log("[v0] Creating passkey credential...")
+        const passkeyCredential = await passkeyClient.createUserPasskey({
           publicKey: {
             rp: {
               name: "SEP DEX Wallet",
@@ -82,12 +95,16 @@ export default function LoginPage() {
           throw new Error("Failed to create passkey")
         }
 
+        console.log("[v0] Passkey created, logging in...")
+
         // Login with passkey to create session
-        await passkeyClient?.loginWithPasskey({
+        await passkeyClient.loginWithPasskey({
           publicKey,
           sessionType: "SESSION_TYPE_READ_WRITE",
           expirationSeconds: 900,
         })
+
+        console.log("[v0] Session created, creating sub-organization...")
 
         // Create sub-organization with the passkey
         const subOrgResponse = await createSubOrganization(
@@ -121,17 +138,30 @@ export default function LoginPage() {
       setIsLoggingIn(true)
       setError(null)
       console.log("[v0] Attempting passkey login")
+      console.log("[v0] Current domain:", typeof window !== 'undefined' ? window.location.hostname : 'unknown')
 
       // Initialize IndexedDB client for session management
-      await indexedDbClient?.init()
-      const publicKey = await indexedDbClient?.getPublicKey()
-
-      if (!publicKey) {
-        throw new Error("Failed to initialize IndexedDB client")
+      if (!indexedDbClient) {
+        throw new Error("IndexedDB client not available - check TurnkeyProvider setup")
       }
 
+      console.log("[v0] Initializing IndexedDB client...")
+      await indexedDbClient.init()
+      const publicKey = await indexedDbClient.getPublicKey()
+
+      if (!publicKey) {
+        throw new Error("Failed to get public key from IndexedDB client")
+      }
+
+      console.log("[v0] Got public key, length:", publicKey.length)
+
       // Login with existing passkey
-      await passkeyClient?.loginWithPasskey({
+      if (!passkeyClient) {
+        throw new Error("Passkey client not available")
+      }
+
+      console.log("[v0] Logging in with passkey...")
+      await passkeyClient.loginWithPasskey({
         publicKey,
         sessionType: "SESSION_TYPE_READ_WRITE",
         expirationSeconds: 900,

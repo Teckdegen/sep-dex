@@ -5,6 +5,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { address } = body
 
+    console.log('[API] Received request body:', body)
+    console.log('[API] Extracted address:', address)
+    console.log('[API] Address length:', address?.length)
+    console.log('[API] Address starts with ST:', address?.startsWith('ST'))
+
     if (!address) {
       return NextResponse.json(
         { error: 'Wallet address is required' },
@@ -12,8 +17,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate Stacks address format (basic validation)
-    if (!address.startsWith('ST') || address.length !== 41) {
+    // Basic validation - just ensure it's a non-empty string starting with ST
+    if (!address || typeof address !== 'string' || !address.startsWith('ST')) {
+      console.log('[API] Address validation failed:', {
+        address,
+        type: typeof address,
+        startsWithST: address?.startsWith('ST')
+      })
       return NextResponse.json(
         { error: 'Invalid Stacks address format' },
         { status: 400 }

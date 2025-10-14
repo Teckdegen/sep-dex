@@ -53,14 +53,12 @@ export default function TradePage() {
     return () => clearInterval(liquidationInterval);
   }, [user, prices]);
 
-  if (isLoading || !user) {
+  if (isLoading || !user || !user.walletAddress) {
     console.log("[v0] Trade page - showing loading state")
     return (
-      <AppLayout walletAddress={user?.walletAddress || ""}>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </AppLayout>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     )
   }
 

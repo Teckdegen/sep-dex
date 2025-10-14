@@ -7,30 +7,39 @@ let parentTurnkeyClient: Turnkey | null = null
 let stamper: WebauthnStamper | null = null
 
 export function getTurnkeyClient(organizationId?: string) {
+  // Ensure we're in a browser environment
+  if (typeof window === "undefined") {
+    throw new Error("Turnkey client can only be used in browser environment")
+  }
+
   if (!stamper) {
+    console.log("[v0] Initializing WebAuthn stamper with RP ID:", window.location.hostname)
     stamper = new WebauthnStamper({
-      rpId: typeof window !== "undefined" ? window.location.hostname : "localhost",
+      rpId: window.location.hostname,
     })
+  }
+
+  // Attach the stamper to the client
+  const clientConfig: any = {
+    apiBaseUrl: "https://api.turnkey.com",
+    defaultOrganizationId: organizationId || process.env.NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID!,
+    stamper: stamper,
   }
 
   // If organizationId is provided, create a new client for that org
   if (organizationId) {
-    return new Turnkey({
-      apiBaseUrl: "https://api.turnkey.com",
-      defaultOrganizationId: organizationId,
-    })
+    console.log("[v0] Creating Turnkey client for organization:", organizationId)
+    return new Turnkey(clientConfig)
   }
 
   // Otherwise return the parent org client
   if (parentTurnkeyClient) {
+    console.log("[v0] Returning existing Turnkey client")
     return parentTurnkeyClient
   }
 
-  parentTurnkeyClient = new Turnkey({
-    apiBaseUrl: "https://api.turnkey.com",
-    defaultOrganizationId: process.env.NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID!,
-  })
-
+  console.log("[v0] Creating new parent Turnkey client")
+  parentTurnkeyClient = new Turnkey(clientConfig)
   return parentTurnkeyClient
 }
 

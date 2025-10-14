@@ -30,7 +30,13 @@ export async function createUserSubOrg(userName: string) {
     // Get Turnkey client
     const turnkeyClient = getTurnkeyClient();
     
+    // Ensure we're in a browser environment where WebAuthn is available
+    if (typeof window === "undefined" || !window.isSecureContext) {
+      throw new Error("WebAuthn requires a secure context (HTTPS or localhost)");
+    }
+    
     // Create sub-organization with passkey (this creates the passkey and sub-org in one step)
+    console.log("[v0] About to call createSubOrganization - this should trigger the passkey prompt");
     const response = await turnkeyClient.createSubOrganization({
       subOrganizationName: `user-${userName}-${Date.now()}`,
       rootUsers: [{
@@ -42,8 +48,13 @@ export async function createUserSubOrg(userName: string) {
 
     console.log("[v0] Sub-organization created:", response);
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error("[v0] Sub-organization creation failed:", error);
+    console.error("[v0] Error details:", {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
     throw error;
   }
 }
@@ -60,6 +71,7 @@ export async function createStacksWallet(subOrgId: string, walletName: string): 
     const turnkeyClient = getTurnkeyClient();
     
     // Create Stacks wallet in the sub-organization
+    console.log("[v0] About to call createWallet");
     const response = await turnkeyClient.createWallet({
       organizationId: subOrgId,
       walletName: walletName,
@@ -74,6 +86,7 @@ export async function createStacksWallet(subOrgId: string, walletName: string): 
     });
 
     // Get the wallet accounts to retrieve the address
+    console.log("[v0] About to call getWalletAccounts");
     const accountsResponse = await turnkeyClient.getWalletAccounts({
       organizationId: subOrgId,
       walletId: response.walletId,
@@ -83,8 +96,13 @@ export async function createStacksWallet(subOrgId: string, walletName: string): 
       walletId: response.walletId,
       addresses: accountsResponse.accounts.map((account: any) => account.address),
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("[v0] Wallet creation failed:", error);
+    console.error("[v0] Error details:", {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
     throw error;
   }
 }
@@ -99,8 +117,14 @@ export async function loginWithPasskey() {
     // Get Turnkey client
     const turnkeyClient = getTurnkeyClient();
     
+    // Ensure we're in a browser environment where WebAuthn is available
+    if (typeof window === "undefined" || !window.isSecureContext) {
+      throw new Error("WebAuthn requires a secure context (HTTPS or localhost)");
+    }
+    
     // Attempt passkey login - this will trigger the WebAuthn prompt
-    const response = await turnkeyClient.whoami();
+    console.log("[v0] About to call whoami - this should trigger the passkey prompt");
+    const response = await turnkeyClient.getWhoami();
     
     console.log("[v0] Passkey login successful:", response);
     return {
@@ -111,8 +135,13 @@ export async function loginWithPasskey() {
         username: response.username || "user"
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("[v0] Passkey login failed:", error);
+    console.error("[v0] Error details:", {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
     throw error;
   }
 }

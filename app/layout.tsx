@@ -18,6 +18,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Configure rpId based on current environment
+  const getRpId = () => {
+    // For localhost development
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      return 'localhost'
+    }
+
+    // For production or custom domains
+    const rpId = process.env.NEXT_PUBLIC_TURNKEY_RP_ID
+    if (rpId) return rpId
+
+    // Fallback to current hostname
+    if (typeof window !== 'undefined') {
+      return window.location.hostname
+    }
+
+    return 'localhost'
+  }
+
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
@@ -25,7 +44,7 @@ export default function RootLayout({
           config={{
             apiBaseUrl: "https://api.turnkey.com",
             defaultOrganizationId: process.env.NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID,
-            rpId: process.env.NEXT_PUBLIC_TURNKEY_RP_ID || "localhost",
+            rpId: getRpId(),
           }}
         >
           <AuthProvider>{children}</AuthProvider>

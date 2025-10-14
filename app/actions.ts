@@ -30,6 +30,8 @@ export const createSubOrganization = async (
   attestation: TAttestation,
 ) => {
   try {
+    console.log("[v0] Creating sub-organization for user:", userName, "with email:", email)
+
     const createSubOrgResponse = await turnkeyServer.createSubOrganization({
       subOrganizationName: `user-${userName}-${Date.now()}`,
       rootUsers: [
@@ -61,6 +63,7 @@ export const createSubOrganization = async (
       },
     });
 
+    console.log("[v0] Sub-organization created successfully:", createSubOrgResponse)
     return createSubOrgResponse;
   } catch (error) {
     console.error("[v0] Failed to create sub-organization:", error);

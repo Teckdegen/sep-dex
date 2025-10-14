@@ -12,10 +12,13 @@ export function getTurnkeyClient(organizationId?: string) {
     throw new Error("Turnkey client can only be used in browser environment")
   }
 
+  // Get current hostname for rpId
+  const currentHostname = window.location.hostname
+
   // Always create a new stamper to ensure proper initialization
-  console.log("[v0] Initializing WebAuthn stamper with RP ID:", window.location.hostname)
+  console.log("[v0] Initializing WebAuthn stamper with RP ID:", currentHostname)
   stamper = new WebauthnStamper({
-    rpId: window.location.hostname,
+    rpId: currentHostname,
   })
 
   // Attach the stamper to the client
@@ -44,8 +47,9 @@ export function getTurnkeyClient(organizationId?: string) {
 
 export function getStamper() {
   if (!stamper) {
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : "localhost"
     stamper = new WebauthnStamper({
-      rpId: typeof window !== "undefined" ? window.location.hostname : "localhost",
+      rpId: hostname,
     })
   }
   return stamper

@@ -40,12 +40,20 @@ SEP DEX is a perpetual futures trading platform that allows users to trade crypt
 
 Create a `.env.local` file based on the `.env.example` template:
 
-```
+```bash
+# Turnkey API Configuration (Required for passkey wallets)
 TURNKEY_API_PRIVATE_KEY=your_turnkey_api_private_key
 TURNKEY_API_PUBLIC_KEY=your_turnkey_api_public_key
+TURNKEY_ORGANIZATION_ID=your_turnkey_organization_id
+
+# Frontend Configuration
 NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID=your_turnkey_organization_id
-NEXT_PUBLIC_CONTRACT_ADDRESS=your_testnet_stacks_contract_address
-NEXT_PUBLIC_ADMIN_PRIVATE_KEY=your_testnet_admin_private_key
+NEXT_PUBLIC_TURNKEY_RP_ID=localhost
+NEXT_PUBLIC_TURNKEY_API_BASE_URL=https://api.turnkey.com
+
+# Stacks Contract Configuration
+NEXT_PUBLIC_CONTRACT_ADDRESS=ST2KNHVS1NANRHD55HAG9X42KSMQ9GMS6KD6TC3TV
+NEXT_PUBLIC_ADMIN_PRIVATE_KEY=your_admin_private_key_for_profits
 ```
 
 ## 🏗️ Architecture

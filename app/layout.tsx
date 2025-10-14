@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth/context"
+import { TurnkeyProvider } from "@turnkey/sdk-react"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 
@@ -20,7 +21,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <TurnkeyProvider
+          config={{
+            apiBaseUrl: "https://api.turnkey.com",
+            defaultOrganizationId: process.env.NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID,
+            rpId: process.env.NEXT_PUBLIC_TURNKEY_RP_ID || "localhost",
+          }}
+        >
+          <AuthProvider>{children}</AuthProvider>
+        </TurnkeyProvider>
       </body>
     </html>
   )

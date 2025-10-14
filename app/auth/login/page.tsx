@@ -9,16 +9,20 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Loader2, Wallet, Key, Lock, Import } from "lucide-react"
+import { useTurnkey } from "@turnkey/sdk-react"
+import { createSubOrganization } from "../../actions"
 
 export default function LoginPage() {
   const [userName, setUserName] = useState("")
+  const [email, setEmail] = useState("")
   const [useLocalWallet, setUseLocalWallet] = useState(false)
   const [importWallet, setImportWallet] = useState(false)
   const [privateKey, setPrivateKey] = useState("")
   const [isCreating, setIsCreating] = useState(false)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { createWalletWithPasskey, loginOrCreateWallet, createLocalWallet, importExistingWallet } = useAuth()
+  const { createLocalWallet, importExistingWallet } = useAuth()
+  const { passkeyClient, indexedDbClient } = useTurnkey()
   const router = useRouter()
 
   const handleCreateWallet = async () => {
@@ -27,10 +31,15 @@ export default function LoginPage() {
       return
     }
 
+    if (!useLocalWallet && !importWallet && !email.trim()) {
+      setError("Please enter an email address for passkey creation")
+      return
+    }
+
     try {
       setIsCreating(true)
       setError(null)
-      
+
       if (importWallet) {
         // Import existing wallet with private key
         if (!privateKey.trim()) {
@@ -45,9 +54,58 @@ export default function LoginPage() {
         await createLocalWallet(userName)
         router.push("/trade")
       } else {
-        // Use Turnkey with passkey creation UI
-        console.log("[v0] Creating Turnkey wallet with passkey for:", userName)
-        await createWalletWithPasskey(userName)
+        // Use Turnkey with email-based passkey creation
+        console.log("[v0] Creating Turnkey wallet with email passkey for:", userName)
+
+        // Initialize IndexedDB client for session management
+        await indexedDbClient?.init()
+        const publicKey = await indexedDbClient?.getPublicKey()
+
+        if (!publicKey) {
+          throw new Error("Failed to initialize IndexedDB client")
+        }
+
+        // Create passkey first
+        const passkeyCredential = await passkeyClient?.createUserPasskey({
+          publicKey: {
+            rp: {
+              name: "SEP DEX Wallet",
+            },
+            user: {
+              name: userName,
+              displayName: userName,
+            },
+          },
+        })
+
+        if (!passkeyCredential) {
+          throw new Error("Failed to create passkey")
+        }
+
+        // Login with passkey to create session
+        await passkeyClient?.loginWithPasskey({
+          publicKey,
+          sessionType: "SESSION_TYPE_READ_WRITE",
+          expirationSeconds: 900,
+        })
+
+        // Create sub-organization with the passkey
+        const subOrgResponse = await createSubOrganization(
+          userName,
+          email,
+          passkeyCredential.encodedChallenge,
+          {
+            credentialId: passkeyCredential.credentialId,
+            clientDataJson: passkeyCredential.clientDataJson,
+            attestationObject: passkeyCredential.attestationObject,
+            transports: passkeyCredential.transports || [],
+          }
+        )
+
+        console.log("[v0] Sub-organization created:", subOrgResponse)
+
+        // For now, redirect to trade page - in a real implementation,
+        // you'd want to store the sub-organization details and wallet address
         router.push("/trade")
       }
     } catch (err) {
@@ -63,8 +121,23 @@ export default function LoginPage() {
       setIsLoggingIn(true)
       setError(null)
       console.log("[v0] Attempting passkey login")
-      // Ensure this is called directly from user interaction
-      await loginOrCreateWallet(userName)
+
+      // Initialize IndexedDB client for session management
+      await indexedDbClient?.init()
+      const publicKey = await indexedDbClient?.getPublicKey()
+
+      if (!publicKey) {
+        throw new Error("Failed to initialize IndexedDB client")
+      }
+
+      // Login with existing passkey
+      await passkeyClient?.loginWithPasskey({
+        publicKey,
+        sessionType: "SESSION_TYPE_READ_WRITE",
+        expirationSeconds: 900,
+      })
+
+      console.log("[v0] Passkey login successful")
       router.push("/trade")
     } catch (err) {
       console.error("[v0] Login error:", err)
@@ -79,17 +152,17 @@ export default function LoginPage() {
     try {
       // Validate private key format
       let formattedPrivateKey = pk.trim();
-      
+
       // Remove 0x prefix if present
       if (formattedPrivateKey.startsWith('0x')) {
         formattedPrivateKey = formattedPrivateKey.slice(2);
       }
-      
+
       // Ensure it's a valid 64-character hex string
       if (!/^[0-9a-fA-F]{64}$/.test(formattedPrivateKey)) {
         return "Invalid private key format";
       }
-      
+
       const { getAddressFromPrivateKey } = require('@stacks/transactions')
       // Use private key without 0x prefix
       return getAddressFromPrivateKey(formattedPrivateKey, 'testnet')
@@ -126,24 +199,40 @@ export default function LoginPage() {
                 className="bg-input text-foreground"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !isCreating && !isLoggingIn) {
-                    // Ensure this is called directly from user interaction
                     handleCreateWallet()
                   }
                 }}
               />
             </div>
 
+            {!useLocalWallet && !importWallet && (
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-foreground">
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isCreating || isLoggingIn}
+                  className="bg-input text-foreground"
+                />
+              </div>
+            )}
+
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="local-wallet" 
+              <Checkbox
+                id="local-wallet"
                 checked={useLocalWallet}
                 onCheckedChange={(checked) => {
                   setUseLocalWallet(checked as boolean)
                   if (checked) setImportWallet(false)
                 }}
               />
-              <Label 
-                htmlFor="local-wallet" 
+              <Label
+                htmlFor="local-wallet"
                 className="text-foreground text-sm cursor-pointer"
               >
                 Use local wallet (no Turnkey)
@@ -151,16 +240,16 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="import-wallet" 
+              <Checkbox
+                id="import-wallet"
                 checked={importWallet}
                 onCheckedChange={(checked) => {
                   setImportWallet(checked as boolean)
                   if (checked) setUseLocalWallet(false)
                 }}
               />
-              <Label 
-                htmlFor="import-wallet" 
+              <Label
+                htmlFor="import-wallet"
                 className="text-foreground text-sm cursor-pointer"
               >
                 Import existing wallet
@@ -189,10 +278,10 @@ export default function LoginPage() {
               </div>
             )}
 
-            <Button 
-              onClick={handleCreateWallet} 
-              disabled={isCreating || isLoggingIn} 
-              className="w-full" 
+            <Button
+              onClick={handleCreateWallet}
+              disabled={isCreating || isLoggingIn}
+              className="w-full"
               size="lg"
               type="button"
             >
@@ -266,7 +355,7 @@ export default function LoginPage() {
               ) : (
                 <>
                   <Key className="inline h-3 w-3 mr-1" />
-                  Turnkey wallet: Secure passkey authentication with biometrics
+                  Turnkey wallet: Secure passkey authentication with biometrics and email recovery
                 </>
               )}
             </p>
@@ -276,8 +365,8 @@ export default function LoginPage() {
               ) : useLocalWallet ? (
                 "⚠️ Private key will be stored in browser storage. Export and backup your private key for security."
               ) : (
-                "• \"Create New Wallet\" - Register a new wallet with a new passkey\n" +
-                "• \"Use Passkey\" - Use an existing passkey or automatically create a new one"
+                "• \"Create New Wallet\" - Register a new wallet with email and passkey\n" +
+                "• \"Use Passkey\" - Login with existing passkey or create a new one"
               )}
             </p>
           </div>

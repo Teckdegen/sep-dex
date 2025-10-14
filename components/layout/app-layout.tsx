@@ -14,7 +14,7 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { MobileNav } from '@/components/layout/mobile-nav'
-import { useAuth } from '@/lib/auth/context'
+import { useAuth, AuthContext } from '@/lib/auth/context'
 import { getStacksBalance } from '@/lib/blockchain/stacks'
 import { Loader2 } from 'lucide-react'
 
@@ -25,7 +25,18 @@ interface AppLayoutProps {
 
 export function AppLayout({ children, walletAddress }: AppLayoutProps) {
   const pathname = usePathname()
-  const { logout } = useAuth()
+
+  // Check if AuthProvider context is available before using useAuth
+  const authContext = React.useContext(AuthContext)
+  if (!authContext) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  const { logout } = authContext
   const [walletBalance, setWalletBalance] = React.useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = React.useState(true)
 
@@ -118,7 +129,7 @@ export function AppLayout({ children, walletAddress }: AppLayoutProps) {
               })}
             </nav>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-secondary/50 rounded-lg px-3 py-2">
               <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -131,10 +142,10 @@ export function AppLayout({ children, walletAddress }: AppLayoutProps) {
                 </div>
               </div>
             </div>
-            
-            <Button 
-              onClick={logout} 
-              variant="outline" 
+
+            <Button
+              onClick={logout}
+              variant="outline"
               size="sm"
               className="border-border hover:bg-secondary hidden md:flex"
             >

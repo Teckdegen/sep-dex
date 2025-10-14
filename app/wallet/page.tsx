@@ -130,6 +130,58 @@ export default function WalletPage() {
     }
   }
 
+  async function handleSendStx() {
+    if (!user?.walletAddress || !recipientAddress || !amount) {
+      setError("Please fill in all fields")
+      return
+    }
+
+    try {
+      setIsSending(true)
+      setError(null)
+      setSuccess(null)
+
+      // Validate amount
+      const amountFloat = parseFloat(amount)
+      if (isNaN(amountFloat) || amountFloat <= 0) {
+        throw new Error("Invalid amount")
+      }
+
+      // Get fresh balance before checking
+      const currentBalance = await getStacksBalance(user.walletAddress)
+      console.log("[v0] Current balance:", currentBalance, "STX")
+
+      // Check if user has enough balance (amount is in STX, balance is in STX)
+      if (amountFloat > currentBalance) {
+        throw new Error("Insufficient balance")
+      }
+
+      // Get user's private key
+      const userPrivateKey = getUserPrivateKey()
+
+      console.log("[v0] Sending STX:", amountFloat, "STX to", recipientAddress)
+
+      // Send STX using user's private key (amount is in STX, sendStx expects microSTX)
+      const txId = await sendStx(Math.floor(amountFloat * 1_000_000), recipientAddress, userPrivateKey)
+
+      setSuccess(`Transfer successful! Transaction ID: ${txId}`)
+      setRecipientAddress("")
+      setAmount("")
+      setLastTxId(txId) // Track transaction to monitor status
+
+      // Update balance after successful transfer
+      setBalance(currentBalance - amountFloat)
+
+      // Instead of immediately reloading balance, wait for transaction confirmation
+      // The useEffect for lastTxId will handle balance updates
+    } catch (err) {
+      console.error("[v0] Transfer failed:", err)
+      setError(err instanceof Error ? err.message : "Transfer failed")
+    } finally {
+      setIsSending(false)
+    }
+  }
+
   async function handleRequestFaucet() {
     if (!user?.walletAddress) {
       setError("No wallet address available")

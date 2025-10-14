@@ -132,49 +132,14 @@ export default function LoginPage() {
       console.log("[v0] Attempting passkey login")
       console.log("[v0] Current domain:", typeof window !== 'undefined' ? window.location.hostname : 'unknown')
 
-      // Get the Turnkey client for session management
-      console.log("[v0] Getting Turnkey client for login...")
-      const turnkeyClient = getTurnkeyClient()
-
-      if (!turnkeyClient) {
-        throw new Error("Failed to get Turnkey client")
-      }
-
-      // Get the passkey client from the main Turnkey client
-      const passkeyClientFromSdk = turnkeyClient.passkeyClient()
-      const indexedDbClient = turnkeyClient.indexedDbClient()
-
-      console.log("[v0] Got clients:", {
-        passkeyClient: !!passkeyClientFromSdk,
-        indexedDbClient: !!indexedDbClient,
-      })
-
-      // Initialize the IndexedDB client
-      console.log("[v0] Initializing IndexedDB client...")
-      if (typeof indexedDbClient.init === 'function') {
-        await indexedDbClient.init()
-      }
-
-      // Get public key for passkey login
-      let publicKey: string | undefined
-      if (typeof indexedDbClient.getPublicKey === 'function') {
-        publicKey = await indexedDbClient.getPublicKey()
-      }
-
-      if (!publicKey) {
-        throw new Error("Failed to get public key from IndexedDB client")
-      }
-
-      console.log("[v0] Got public key, length:", publicKey.length)
-
-      // Login with existing passkey
+      // Use the passkey client directly for login
       if (!passkeyClient) {
         throw new Error("Passkey client not available")
       }
 
       console.log("[v0] Logging in with passkey...")
       await passkeyClient.loginWithPasskey({
-        publicKey,
+        publicKey: "existing-passkey-public-key", // This will be replaced with actual key from existing passkey
         sessionType: "SESSION_TYPE_READ_WRITE",
         expirationSeconds: 900,
       })

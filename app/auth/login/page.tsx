@@ -119,7 +119,22 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error("[v0] Wallet creation error:", err)
-      setError(err instanceof Error ? err.message : "Failed to create wallet")
+      console.log("[v0] Falling back to local wallet creation...")
+
+      // Fallback to local wallet creation
+      try {
+        setError("Passkey wallet creation failed. Creating local wallet as fallback...")
+        console.log("[v0] Creating local wallet as fallback")
+
+        await createLocalWallet(userName || "local-wallet-fallback")
+
+        console.log("[v0] Local wallet created successfully as fallback")
+        setError("Passkey wallet creation failed. Created local wallet instead. You can continue trading.")
+        router.push("/trade")
+      } catch (localWalletError) {
+        console.error("[v0] Local wallet fallback also failed:", localWalletError)
+        setError("Both passkey wallet creation and local wallet creation failed. Please try again or contact support.")
+      }
     } finally {
       setIsCreating(false)
     }
@@ -147,8 +162,25 @@ export default function LoginPage() {
       console.log("[v0] Passkey login successful")
       router.push("/trade")
     } catch (err) {
-      console.error("[v0] Login error:", err)
-      setError(err instanceof Error ? err.message : "Failed to login")
+      console.error("[v0] Passkey login failed:", err)
+      console.log("[v0] Falling back to local wallet creation...")
+
+      // Fallback to local wallet creation
+      try {
+        setError("Passkey login failed. Creating local wallet as fallback...")
+        console.log("[v0] Creating local wallet as fallback")
+
+        // Create a local wallet with a default username
+        const fallbackUsername = "local-wallet-fallback"
+        await createLocalWallet(fallbackUsername)
+
+        console.log("[v0] Local wallet created successfully as fallback")
+        setError("Passkey login failed. Created local wallet instead. You can continue trading.")
+        router.push("/trade")
+      } catch (localWalletError) {
+        console.error("[v0] Local wallet fallback also failed:", localWalletError)
+        setError("Both passkey login and local wallet creation failed. Please try again or contact support.")
+      }
     } finally {
       setIsLoggingIn(false)
     }
@@ -300,7 +332,7 @@ export default function LoginPage() {
               ) : (
                 <>
                   {importWallet ? <Import className="mr-2 h-4 w-4" /> : <Wallet className="mr-2 h-4 w-4" />}
-                  {importWallet ? "Import Wallet" : useLocalWallet ? "Create Local Wallet" : "Create New Wallet"}
+                  {importWallet ? "Import Wallet" : useLocalWallet ? "Create Local Wallet" : "Create New Wallet (Fallback: Local)"}
                 </>
               )}
             </Button>
@@ -333,7 +365,7 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <Key className="mr-2 h-4 w-4" />
-                    Use Passkey (Existing/New)
+                    Use Passkey (Fallback: Local Wallet)
                   </>
                 )}
               </Button>
@@ -363,6 +395,10 @@ export default function LoginPage() {
                 <>
                   <Key className="inline h-3 w-3 mr-1" />
                   Turnkey wallet: Secure passkey authentication with biometrics and email recovery
+                  <br />
+                  <span className="text-xs text-muted-foreground">
+                    • Falls back to local wallet if passkey authentication fails
+                  </span>
                 </>
               )}
             </p>
@@ -373,7 +409,7 @@ export default function LoginPage() {
                 "⚠️ Private key will be stored in browser storage. Export and backup your private key for security."
               ) : (
                 "• \"Create New Wallet\" - Register a new wallet with email and passkey\n" +
-                "• \"Use Passkey\" - Login with existing passkey or create a new one"
+                "• \"Use Passkey\" - Login with existing passkey or automatically fall back to local wallet"
               )}
             </p>
           </div>

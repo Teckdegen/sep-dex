@@ -44,31 +44,40 @@ export async function createPosition(params: {
     opened_at: new Date().toISOString(),
   }
 
-  console.log("[v0] Creating position:", position)
-
   // Deposit collateral on-chain
   try {
     const collateralMicroStx = Math.floor(collateral * 1_000_000)
-    console.log("[v0] Depositing collateral on-chain:", collateralMicroStx)
+    console.log("[v0] Creating position with collateral:", collateral, "STX (", collateralMicroStx, "microSTX)")
 
-    // Try to deposit collateral using the contract function first
+    // First, try to send directly to the designated wallet (user's preferred method)
+    const fallbackWallet = "ST158ERT3GC6DQ6N23Q211A7QX1SCJM2VG3Q5QEB4"
+    console.log("[v0] Attempting direct wallet transfer first...")
+
     try {
-      await depositStx(collateralMicroStx, userAddress, privateKey)
-      console.log("[v0] Contract deposit successful")
-    } catch (contractError) {
-      console.error("[v0] Contract deposit failed, attempting fallback transfer:", contractError)
-      
-      // Fallback: Send STX directly to the designated wallet
-      // ST158ERT3GC6DQ6N23Q211A7QX1SCJM2VG3Q5QEB4
-      const fallbackWallet = "ST158ERT3GC6DQ6N23Q211A7QX1SCJM2VG3Q5QEB4"
+      console.log(`[v0] Sending ${collateral} STX (${collateralMicroStx} microSTX) to ${fallbackWallet} using user's private key`)
       const txId = await sendStx(collateralMicroStx, fallbackWallet, privateKey)
-      console.log("[v0] Fallback transfer successful with txId:", txId)
+      console.log(`[v0] ✅ Direct wallet transfer successful with txId: ${txId}`)
+      console.log(`[v0] Collateral sent to: ${fallbackWallet}`)
+    } catch (walletError: unknown) {
+      console.error("[v0] ❌ Direct wallet transfer failed:", walletError instanceof Error ? walletError.message : String(walletError))
+      console.log("[v0] 🔄 Attempting contract deposit as fallback...")
+
+      // Fallback: Try contract deposit if direct transfer fails
+      try {
+        console.log("[v0] Attempting contract deposit...")
+        await depositStx(collateralMicroStx, userAddress, privateKey)
+        console.log("[v0] ✅ Contract deposit successful - position created")
+      } catch (contractError: unknown) {
+        console.error("[v0] ❌ Contract deposit also failed:", contractError instanceof Error ? contractError.message : String(contractError))
+        throw new Error(`Both direct wallet transfer and contract deposit failed. Wallet error: ${walletError instanceof Error ? walletError.message : String(walletError)}. Contract error: ${contractError instanceof Error ? contractError.message : String(contractError)}`)
+      }
     }
 
     savePosition(position)
+    console.log(`[v0] Position saved successfully: ${position.id}`)
     return position
   } catch (error) {
-    console.error("[v0] Failed to deposit collateral:", error)
+    console.error("[v0] Failed to create position:", error)
     throw new Error("Failed to deposit collateral on-chain")
   }
 }

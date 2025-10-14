@@ -32,10 +32,10 @@ export function AppLayout({ children, walletAddress }: AppLayoutProps) {
   React.useEffect(() => {
     if (walletAddress) {
       loadWalletBalance()
-      
+
       // Set up automatic balance refresh every 2 minutes (120000 ms)
       const balanceInterval = setInterval(loadWalletBalance, 120000)
-      
+
       // Clean up interval on component unmount
       return () => clearInterval(balanceInterval)
     }
@@ -53,6 +53,15 @@ export function AppLayout({ children, walletAddress }: AppLayoutProps) {
     } finally {
       setIsLoadingBalance(false)
     }
+  }
+
+  // Don't render if walletAddress is not provided or if logout is not available
+  if (!walletAddress || !logout) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   const navItems = [

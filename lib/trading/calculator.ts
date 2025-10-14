@@ -21,6 +21,8 @@ export function computePosition(params: TradeParameters): TradeResult {
   const positionSize = (collateral * leverage) / entry
 
   // Price difference based on direction
+  // For long: profit when price > entry (price - entry)
+  // For short: profit when price < entry (entry - price)
   const priceDiff = direction === "long" ? price - entry : entry - price
 
   // PnL calculation: PnL = Q × (Price Diff / Entry Price)
@@ -36,6 +38,8 @@ export function computePosition(params: TradeParameters): TradeResult {
       : entry * (1 + 1 / leverage) // Short: Entry × (1 + 1/Leverage)
 
   // Check if position is liquidated
+  // For long: liquidated when price <= liquidationPrice
+  // For short: liquidated when price >= liquidationPrice
   const isLiquidated = direction === "long" ? price <= liquidationPrice : price >= liquidationPrice
 
   // Calculate payout (cannot be negative)

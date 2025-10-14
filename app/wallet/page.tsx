@@ -195,30 +195,31 @@ export default function WalletPage() {
 
       console.log("[v0] Requesting STX from faucet for address:", user.walletAddress)
 
-      const response = await fetch(
-        `https://api.testnet.stacks.co/extended/v1/faucets/stx?address=${user.walletAddress}&stacking=false`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+      const response = await fetch('/api/faucet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: user.walletAddress
+        }),
+      })
 
       if (!response.ok) {
-        throw new Error(`Faucet request failed: ${response.status} ${response.statusText}`)
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Faucet request failed: ${response.status}`)
       }
 
       const data = await response.json()
       console.log("[v0] Faucet response:", data)
 
       // Set the transaction ID for monitoring
-      if (data.txId) {
-        setFaucetTxId(data.txId)
-        setSuccess(`Faucet request successful! Transaction ID: ${data.txId}`)
+      if (data.data?.txId) {
+        setFaucetTxId(data.data.txId)
+        setSuccess(`Faucet request successful! Transaction ID: ${data.data.txId}`)
 
         // Monitor the faucet transaction
-        setLastTxId(data.txId)
+        setLastTxId(data.data.txId)
       } else {
         setSuccess("Faucet request submitted successfully!")
       }

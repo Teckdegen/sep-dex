@@ -22,11 +22,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
-import { useAuth } from '@/lib/auth/context'
+import { useAuth, AuthContext } from '@/lib/auth/context'
 
 export function MobileNav() {
   const pathname = usePathname()
-  const { logout } = useAuth()
+
+  // Check if AuthProvider context is available before using useAuth
+  const authContext = React.useContext(AuthContext)
+  if (!authContext) {
+    return (
+      <Button variant="ghost" size="icon" className="md:hidden">
+        <Menu className="h-6 w-6" />
+        <span className="sr-only">Toggle navigation menu</span>
+      </Button>
+    )
+  }
+
+  const { logout } = authContext
   const [open, setOpen] = React.useState(false)
 
   const navItems = [

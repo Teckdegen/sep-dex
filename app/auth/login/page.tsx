@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { Button } from "@/components/ui/button"
@@ -22,8 +22,16 @@ export default function LoginPage() {
   const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { createLocalWallet, importExistingWallet } = useAuth()
-  const { passkeyClient, indexedDbClient } = useTurnkey()
+  const { passkeyClient, getActiveClient } = useTurnkey()
   const router = useRouter()
+
+  // Debug: Log available Turnkey functions
+  useEffect(() => {
+    console.log("[v0] Turnkey hook initialized:", {
+      passkeyClient: !!passkeyClient,
+      getActiveClient: !!getActiveClient,
+    })
+  }, [passkeyClient, getActiveClient])
 
   const handleCreateWallet = async () => {
     if (!userName.trim()) {
@@ -58,17 +66,32 @@ export default function LoginPage() {
         console.log("[v0] Creating Turnkey wallet with email passkey for:", userName)
         console.log("[v0] Current domain:", typeof window !== 'undefined' ? window.location.hostname : 'unknown')
 
-        // Initialize IndexedDB client for session management
-        if (!indexedDbClient) {
-          throw new Error("IndexedDB client not available - check TurnkeyProvider setup")
+        // Get the active client for session management
+        if (!getActiveClient) {
+          throw new Error("getActiveClient not available - check TurnkeyProvider setup")
         }
 
-        console.log("[v0] Initializing IndexedDB client...")
-        await indexedDbClient.init()
-        const publicKey = await indexedDbClient.getPublicKey()
+        console.log("[v0] Getting active client...")
+        const activeClient = await getActiveClient()
+
+        if (!activeClient) {
+          throw new Error("No active client available")
+        }
+
+        // Initialize the client if needed
+        if (typeof activeClient.init === 'function') {
+          console.log("[v0] Initializing active client...")
+          await activeClient.init()
+        }
+
+        // Get public key for passkey creation
+        let publicKey: string | undefined
+        if (typeof activeClient.getPublicKey === 'function') {
+          publicKey = await activeClient.getPublicKey()
+        }
 
         if (!publicKey) {
-          throw new Error("Failed to get public key from IndexedDB client")
+          throw new Error("Failed to get public key from active client")
         }
 
         console.log("[v0] Got public key, length:", publicKey.length)
@@ -140,17 +163,32 @@ export default function LoginPage() {
       console.log("[v0] Attempting passkey login")
       console.log("[v0] Current domain:", typeof window !== 'undefined' ? window.location.hostname : 'unknown')
 
-      // Initialize IndexedDB client for session management
-      if (!indexedDbClient) {
-        throw new Error("IndexedDB client not available - check TurnkeyProvider setup")
+      // Get the active client for session management
+      if (!getActiveClient) {
+        throw new Error("getActiveClient not available - check TurnkeyProvider setup")
       }
 
-      console.log("[v0] Initializing IndexedDB client...")
-      await indexedDbClient.init()
-      const publicKey = await indexedDbClient.getPublicKey()
+      console.log("[v0] Getting active client for login...")
+      const activeClient = await getActiveClient()
+
+      if (!activeClient) {
+        throw new Error("No active client available")
+      }
+
+      // Initialize the client if needed
+      if (typeof activeClient.init === 'function') {
+        console.log("[v0] Initializing active client...")
+        await activeClient.init()
+      }
+
+      // Get public key for passkey login
+      let publicKey: string | undefined
+      if (typeof activeClient.getPublicKey === 'function') {
+        publicKey = await activeClient.getPublicKey()
+      }
 
       if (!publicKey) {
-        throw new Error("Failed to get public key from IndexedDB client")
+        throw new Error("Failed to get public key from active client")
       }
 
       console.log("[v0] Got public key, length:", publicKey.length)

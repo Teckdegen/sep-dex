@@ -58,7 +58,7 @@ export default function RootLayout({
         <TurnkeyProvider
           config={{
             apiBaseUrl: "https://api.turnkey.com",
-            defaultOrganizationId: process.env.NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID,
+            defaultOrganizationId: process.env.NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID || "",
             rpId: getRpId(),
           }}
         >

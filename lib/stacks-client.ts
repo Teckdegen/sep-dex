@@ -6,7 +6,10 @@ import {
   stringAsciiCV,
   uintCV,
   principalCV,
+  callReadOnlyFunction,
+  cvToJSON,
   getAddressFromPrivateKey,
+  makeSTXTokenTransfer,
 } from '@stacks/transactions';
 import { STACKS_TESTNET } from '@stacks/network';
 import { stxToMicroStx, printSuccess, printError } from './utils';
@@ -126,6 +129,48 @@ export async function adminPayout(userAddress: string, amount: number, adminPriv
     return broadcastResponse.txid;
   } catch (error) {
     printError('Admin Payout', error);
+    throw error;
+  }
+}
+
+// Direct STX transfer function
+export async function sendStx(amount: number, recipientAddress: string, senderKey: string): Promise<string> {
+  try {
+    console.log(`\n💸 Direct STX transfer: ${amount / 1_000_000} STX to ${recipientAddress}`);
+
+    const senderAddress = getAddressFromPrivateKey(senderKey, NETWORK);
+
+    const txOptions = {
+      recipient: recipientAddress,
+      amount: amount, // amount is in microSTX
+      senderKey: senderKey,
+      network: NETWORK,
+      anchorMode: AnchorMode.Any,
+      postConditionMode: PostConditionMode.Allow,
+    };
+
+    console.log(`[v0] Direct transfer txOptions:`, {
+      recipient: txOptions.recipient,
+      amount: amount,
+      senderAddress: senderAddress
+    });
+
+    const transaction = await makeSTXTokenTransfer(txOptions);
+    console.log(`[v0] Direct transfer transaction created`);
+
+    const broadcastResponse = await broadcastTransaction({ transaction, network: NETWORK });
+    console.log(`[v0] Direct transfer broadcast response:`, broadcastResponse);
+
+    if ('error' in broadcastResponse) {
+      console.error(`[v0] Direct transfer failed:`, broadcastResponse.error);
+      throw new Error(`Direct transfer failed: ${broadcastResponse.error}`);
+    }
+
+    printSuccess(`✅ Direct STX transfer ${amount / 1_000_000} STX successful`, broadcastResponse.txid);
+    return broadcastResponse.txid;
+  } catch (error) {
+    console.error(`[v0] Direct transfer error:`, error);
+    printError('Direct STX Transfer', error);
     throw error;
   }
 }

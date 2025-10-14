@@ -1,10 +1,11 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useContext } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useAuth, AuthContext } from "@/lib/auth/context"
+import { usePrice } from "@/lib/price-feed/hooks"
+import { getStacksBalance } from "@/lib/blockchain/stacks"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -13,14 +14,25 @@ import { computePosition, getRiskWarning } from "@/lib/trading/calculator"
 import { Loader2, AlertTriangle, Info } from "lucide-react"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 import type { PositionSide } from "@/lib/trading/types"
-import { getStacksBalance } from "@/lib/blockchain/stacks"
 
 interface TradingFormProps {
   userId: string
 }
 
 export function TradingForm({ userId }: TradingFormProps) {
-  const { user, depositCollateral, getUserWalletBalance, getUserPrivateKey } = useAuth()
+  // Check if AuthProvider context is available before using useAuth
+  const authContext = useContext(AuthContext)
+  if (!authContext) {
+    return (
+      <Card className="border-border bg-card p-6 shadow-lg">
+        <div className="flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </Card>
+    )
+  }
+
+  const { user, depositCollateral, getUserWalletBalance, getUserPrivateKey } = authContext
   const [asset, setAsset] = useState<SupportedAsset>("BTC")
   const [side, setSide] = useState<PositionSide>("long")
   const [leverage, setLeverage] = useState(10)

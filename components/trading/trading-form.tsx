@@ -13,8 +13,7 @@ import { computePosition, getRiskWarning } from "@/lib/trading/calculator"
 import { Loader2, AlertTriangle, Info } from "lucide-react"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 import type { PositionSide } from "@/lib/trading/types"
-import { useAuth } from "@/lib/auth/context"
-import { usePrice } from "@/lib/price-feed/hooks"
+import { getStacksBalance } from "@/lib/blockchain/stacks"
 
 interface TradingFormProps {
   userId: string
@@ -37,8 +36,8 @@ export function TradingForm({ userId }: TradingFormProps) {
     async function loadWalletBalance() {
       if (user?.walletAddress) {
         try {
-          const balance = await getUserWalletBalance()
-          setWalletBalance(balance) // Balance is already in STX, no conversion needed
+          const balance = await getStacksBalance(user.walletAddress)
+          setWalletBalance(balance / 1_000_000) // Convert from microSTX to STX
         } catch (error) {
           console.error("[v0] Failed to load wallet balance:", error)
         }
@@ -46,19 +45,21 @@ export function TradingForm({ userId }: TradingFormProps) {
     }
 
     loadWalletBalance()
-  }, [user, getUserWalletBalance])
+  }, [user?.walletAddress])
 
   // Refresh balance after successful position creation
   useEffect(() => {
     if (success) {
       const timer = setTimeout(() => {
         if (user?.walletAddress) {
-          getUserWalletBalance().then(balance => setWalletBalance(balance)).catch(console.error)
+          getStacksBalance(user.walletAddress)
+            .then(balance => setWalletBalance(balance / 1_000_000))
+            .catch(console.error)
         }
       }, 2000) // Wait 2 seconds after success message
       return () => clearTimeout(timer)
     }
-  }, [success, user, getUserWalletBalance])
+  }, [success, user?.walletAddress])
 
   const preview = price
     ? computePosition({

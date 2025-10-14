@@ -118,11 +118,7 @@ export function AppLayout({ children, walletAddress }: AppLayoutProps) {
                   {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                 </div>
                 <div className="text-muted-foreground">
-                  {isLoadingBalance ? (
-                    <Loader2 className="inline h-3 w-3 animate-spin" />
-                  ) : (
-                    `${(walletBalance / 1_000_000).toFixed(2)} STX`
-                  )}
+                  Wallet Connected
                 </div>
               </div>
             </div>

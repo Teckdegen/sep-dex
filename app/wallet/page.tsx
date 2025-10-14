@@ -207,7 +207,16 @@ export default function WalletPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || `Faucet request failed: ${response.status}`)
+        console.error('[v0] API error response:', errorData)
+
+        // Handle different error types from the API route
+        if (response.status === 502) {
+          throw new Error(`Faucet service unavailable: ${errorData.details || errorData.error}`)
+        } else if (response.status === 504) {
+          throw new Error(`Faucet request timed out: ${errorData.details || errorData.error}`)
+        } else {
+          throw new Error(errorData.error || `Faucet request failed: ${response.status}`)
+        }
       }
 
       const data = await response.json()

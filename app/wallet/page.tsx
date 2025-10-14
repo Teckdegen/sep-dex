@@ -212,6 +212,8 @@ export default function WalletPage() {
         // Handle different error types from the API route
         if (response.status === 502) {
           throw new Error(`Faucet service unavailable: ${errorData.details || errorData.error}`)
+        } else if (response.status === 503) {
+          throw new Error(`Service unavailable: ${errorData.details || errorData.error}`)
         } else if (response.status === 504) {
           throw new Error(`Faucet request timed out: ${errorData.details || errorData.error}`)
         } else {
@@ -225,12 +227,14 @@ export default function WalletPage() {
       // Set the transaction ID for monitoring
       if (data.data?.txId) {
         setFaucetTxId(data.data.txId)
-        setSuccess(`Faucet request successful! Transaction ID: ${data.data.txId}`)
+        const method = data.method || 'unknown'
+        const amount = data.data?.amount || 'faucet amount'
+        setSuccess(`Request successful! Transaction ID: ${data.data.txId} (${method})`)
 
-        // Monitor the faucet transaction
+        // Monitor the transaction
         setLastTxId(data.data.txId)
       } else {
-        setSuccess("Faucet request submitted successfully!")
+        setSuccess("Request submitted successfully!")
       }
 
       // Refresh balance after a short delay

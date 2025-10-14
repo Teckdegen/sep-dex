@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { sendStx } from '@/lib/blockchain/stacks'
+import { SENDER_KEY } from '@/lib/config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,11 +34,15 @@ export async function POST(request: NextRequest) {
 
     console.log(`[API] Requesting faucet for address: ${address}`)
 
-    // Call the external Stacks faucet API with timeout
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+    // First, try to use the external faucet API
+    console.log('[API] Attempting faucet API request...')
+    let faucetTxId = null
 
     try {
+      // Call the external Stacks faucet API with timeout
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+
       const faucetResponse = await fetch(
         `https://api.testnet.stacks.co/extended/v1/faucets/stx?address=${address}&stacking=false`,
         {
@@ -52,78 +58,78 @@ export async function POST(request: NextRequest) {
       clearTimeout(timeoutId)
 
       console.log(`[API] External API response status: ${faucetResponse.status}`)
-      console.log(`[API] External API response headers:`, Object.fromEntries(faucetResponse.headers.entries()))
 
-      if (!faucetResponse.ok) {
-        const errorText = await faucetResponse.text()
-        console.error(`[API] Faucet request failed: ${faucetResponse.status} ${errorText}`)
-
-        // Try to parse as JSON in case it's a JSON error response
-        let errorDetails = errorText
+      if (faucetResponse.ok) {
+        let faucetData
         try {
-          const errorJson = JSON.parse(errorText)
-          errorDetails = JSON.stringify(errorJson, null, 2)
-        } catch {
-          // Keep original error text if not JSON
+          faucetData = await faucetResponse.json()
+        } catch (parseError) {
+          console.error('[API] Failed to parse faucet response as JSON:', parseError)
+          throw new Error('Invalid response from faucet API')
         }
 
-        return NextResponse.json(
-          {
-            error: 'Faucet request failed',
-            details: `External API returned ${faucetResponse.status}: ${errorDetails}`,
-            externalStatus: faucetResponse.status
-          },
-          { status: 502 } // Bad Gateway - external service error
-        )
+        console.log(`[API] Faucet response:`, faucetData)
+
+        if (faucetData.txId || faucetData.success) {
+          faucetTxId = faucetData.txId || 'faucet-success'
+          console.log(`[API] Faucet API successful, txId: ${faucetTxId}`)
+
+          return NextResponse.json({
+            success: true,
+            data: faucetData,
+            message: 'Faucet request successful',
+            method: 'faucet_api'
+          })
+        }
+      } else {
+        const errorText = await faucetResponse.text()
+        console.error(`[API] Faucet API failed: ${faucetResponse.status} ${errorText}`)
       }
+    } catch (fetchError) {
+      console.error('[API] Faucet API request failed:', fetchError)
+    }
 
-      let faucetData
-      try {
-        faucetData = await faucetResponse.json()
-      } catch (parseError) {
-        console.error('[API] Failed to parse faucet response as JSON:', parseError)
-        const responseText = await faucetResponse.text()
-        console.error('[API] Raw response:', responseText)
+    // If faucet API fails, try using admin private key to send STX directly
+    console.log('[API] Faucet API failed, attempting admin transfer...')
 
-        return NextResponse.json(
-          {
-            error: 'Invalid response from faucet API',
-            details: `Could not parse response: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`,
-            rawResponse: responseText.substring(0, 500) // First 500 chars
-          },
-          { status: 502 }
-        )
-      }
+    if (!SENDER_KEY) {
+      console.error('[API] No admin private key available for fallback')
+      return NextResponse.json(
+        {
+          error: 'Faucet unavailable and no admin key configured',
+          details: 'Both faucet API and admin fallback failed'
+        },
+        { status: 503 } // Service Unavailable
+      )
+    }
 
-      console.log(`[API] Faucet response:`, faucetData)
+    try {
+      console.log(`[API] Sending 100 STX from admin to ${address}`)
+
+      // Send 100 STX (100 * 1,000,000 microSTX)
+      const transferTxId = await sendStx(100_000_000, address, SENDER_KEY)
+
+      console.log(`[API] Admin transfer successful, txId: ${transferTxId}`)
 
       return NextResponse.json({
         success: true,
-        data: faucetData,
-        message: 'Faucet request submitted successfully'
+        data: {
+          txId: transferTxId,
+          amount: 100,
+          method: 'admin_transfer'
+        },
+        message: 'Admin transfer successful (faucet fallback)',
+        method: 'admin_transfer'
       })
 
-    } catch (fetchError) {
-      clearTimeout(timeoutId)
-
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('[API] Faucet request timed out')
-        return NextResponse.json(
-          {
-            error: 'Faucet request timeout',
-            details: 'The faucet API took too long to respond'
-          },
-          { status: 504 } // Gateway Timeout
-        )
-      }
-
-      console.error('[API] Network error calling faucet API:', fetchError)
+    } catch (transferError) {
+      console.error('[API] Admin transfer failed:', transferError)
       return NextResponse.json(
         {
-          error: 'Network error',
-          details: fetchError instanceof Error ? fetchError.message : 'Unknown network error'
+          error: 'Both faucet and admin transfer failed',
+          details: transferError instanceof Error ? transferError.message : 'Unknown transfer error'
         },
-        { status: 502 }
+        { status: 503 }
       )
     }
 

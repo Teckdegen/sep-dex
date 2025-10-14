@@ -46,12 +46,23 @@ TURNKEY_API_PRIVATE_KEY=your_turnkey_api_private_key
 TURNKEY_API_PUBLIC_KEY=your_turnkey_api_public_key
 TURNKEY_ORGANIZATION_ID=your_turnkey_organization_id
 
-# Frontend Configuration
+### **🌐 Frontend Configuration**
+```bash
+# Client-side organization ID (required for TurnkeyProvider)
 NEXT_PUBLIC_TURNKEY_ORGANIZATION_ID=your_turnkey_organization_id
-NEXT_PUBLIC_TURNKEY_RP_ID=localhost
-NEXT_PUBLIC_TURNKEY_API_BASE_URL=https://api.turnkey.com
 
-# Stacks Contract Configuration
+# Relying Party ID for WebAuthn - IMPORTANT!
+# For localhost development: use "localhost"
+# For Vercel deployment: use your actual Vercel domain (e.g., "your-project.vercel.app")
+# For custom domain: use your custom domain
+NEXT_PUBLIC_TURNKEY_RP_ID=your-project.vercel.app
+
+# API base URL (optional, defaults to https://api.turnkey.com)
+NEXT_PUBLIC_TURNKEY_API_BASE_URL=https://api.turnkey.com
+```
+
+### **⛓️ Stacks Contract Configuration**
+```bash
 NEXT_PUBLIC_CONTRACT_ADDRESS=ST2KNHVS1NANRHD55HAG9X42KSMQ9GMS6KD6TC3TV
 NEXT_PUBLIC_ADMIN_PRIVATE_KEY=your_admin_private_key_for_profits
 ```

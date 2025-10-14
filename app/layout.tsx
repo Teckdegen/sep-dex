@@ -18,23 +18,33 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  // Configure rpId based on current environment
+  // Configure rpId based on current environment and domain
   const getRpId = () => {
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      return process.env.NEXT_PUBLIC_TURNKEY_RP_ID || 'localhost'
+    }
+
+    const currentHostname = window.location.hostname
+
     // For localhost development
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
       return 'localhost'
     }
 
-    // For production or custom domains
-    const rpId = process.env.NEXT_PUBLIC_TURNKEY_RP_ID
-    if (rpId) return rpId
-
-    // Fallback to current hostname
-    if (typeof window !== 'undefined') {
-      return window.location.hostname
+    // For Vercel deployments - use the actual domain
+    if (currentHostname.endsWith('.vercel.app')) {
+      return currentHostname
     }
 
-    return 'localhost'
+    // For custom domains or production
+    const envRpId = process.env.NEXT_PUBLIC_TURNKEY_RP_ID
+    if (envRpId && envRpId !== 'localhost') {
+      return envRpId
+    }
+
+    // Fallback to current hostname
+    return currentHostname
   }
 
   return (

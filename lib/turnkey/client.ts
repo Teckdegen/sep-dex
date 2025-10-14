@@ -12,13 +12,34 @@ export function getTurnkeyClient(organizationId?: string) {
     throw new Error("Turnkey client can only be used in browser environment")
   }
 
-  // Get current hostname for rpId
-  const currentHostname = window.location.hostname
+  // Get current hostname for rpId - same logic as layout.tsx
+  const getRpId = () => {
+    const currentHostname = window.location.hostname
+
+    // For localhost development
+    if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
+      return 'localhost'
+    }
+
+    // For Vercel deployments - use the actual domain
+    if (currentHostname.endsWith('.vercel.app')) {
+      return currentHostname
+    }
+
+    // For custom domains or production
+    const envRpId = process.env.NEXT_PUBLIC_TURNKEY_RP_ID
+    if (envRpId && envRpId !== 'localhost') {
+      return envRpId
+    }
+
+    // Fallback to current hostname
+    return currentHostname
+  }
 
   // Always create a new stamper to ensure proper initialization
-  console.log("[v0] Initializing WebAuthn stamper with RP ID:", currentHostname)
+  console.log("[v0] Initializing WebAuthn stamper with RP ID:", getRpId())
   stamper = new WebauthnStamper({
-    rpId: currentHostname,
+    rpId: getRpId(),
   })
 
   // Attach the stamper to the client
@@ -47,9 +68,34 @@ export function getTurnkeyClient(organizationId?: string) {
 
 export function getStamper() {
   if (!stamper) {
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : "localhost"
+    // Use the same rpId logic as the main client
+    const getRpId = () => {
+      if (typeof window === 'undefined') return 'localhost'
+
+      const currentHostname = window.location.hostname
+
+      // For localhost development
+      if (currentHostname === 'localhost' || currentHostname === '127.0.0.1') {
+        return 'localhost'
+      }
+
+      // For Vercel deployments - use the actual domain
+      if (currentHostname.endsWith('.vercel.app')) {
+        return currentHostname
+      }
+
+      // For custom domains or production
+      const envRpId = process.env.NEXT_PUBLIC_TURNKEY_RP_ID
+      if (envRpId && envRpId !== 'localhost') {
+        return envRpId
+      }
+
+      // Fallback to current hostname
+      return currentHostname
+    }
+
     stamper = new WebauthnStamper({
-      rpId: hostname,
+      rpId: getRpId(),
     })
   }
   return stamper

@@ -42,16 +42,24 @@ export function PositionCard({ position }: PositionCardProps) {
     try {
       setIsClosing(true)
       setError(null)
-      
+
       // Get current price for the asset
       const currentPrice = await getCurrentPrice(position.symbol)
-      
-      // Close position - admin payout will be handled server-side in position-manager.ts
+
+      // Get admin private key for profit distribution
+      // Use local admin key for payouts (you should set this in your .env.local)
+      const adminPrivateKey = process.env.NEXT_PUBLIC_ADMIN_PRIVATE_KEY
+
+      if (!adminPrivateKey) {
+        console.warn("[v0] No admin private key available for profit distribution")
+      }
+
+      // Close position - profit distribution will be handled in position-manager.ts
       await closePosition(
-        position.id, 
-        currentPrice, 
+        position.id,
+        currentPrice,
         user?.walletAddress || '',
-        undefined // Remove client-side admin key for security
+        adminPrivateKey // Pass admin key for profit distribution
       )
       window.location.reload()
     } catch (error) {

@@ -7,6 +7,7 @@ import { sendStx } from "../blockchain/stacks" // Import sendStx for fallback
 import { getUserBySubOrgId } from "../turnkey/service"
 import { convertUsdProfitToStx } from "../utils"
 import { SENDER_KEY } from "../config"
+import { priceFeedManager } from "../price-feed/manager"
 
 export async function createPosition(params: {
   userId: string
@@ -119,31 +120,43 @@ export async function closePosition(
   // If profitable and admin key provided, trigger payout
   if (result.pnl > 0 && adminPrivateKey) {
     try {
+      // Get current STX price for accurate profit conversion
+      const currentStxPrice = await priceFeedManager.getPrice("STX")
+      console.log("[v0] Current STX price for profit conversion:", currentStxPrice)
+
       // Convert USD profit to STX amount for payout
-      const profitInStx = convertUsdProfitToStx(result.pnl)
-      console.log("[v0] USD Profit:", result.pnl, "STX Profit:", profitInStx)
+      const profitInStx = convertUsdProfitToStx(result.pnl, currentStxPrice)
+      console.log("[v0] USD Profit:", result.pnl, "STX Profit:", profitInStx, "STX Price:", currentStxPrice)
 
-      // Try to call admin payout contract function first
+      // Try to use admin private key for direct payment first (user's preferred method)
       try {
-        // Call admin payout to send profits to user
-        await adminPayout(userAddress, profitInStx, adminPrivateKey)
-        console.log("[v0] Contract payout successful")
-      } catch (contractError) {
-        console.error("[v0] Contract payout failed, attempting fallback transfer:", contractError)
-
-        // Fallback: Send STX directly from admin wallet to user
+        console.log("[v0] Attempting direct admin transfer first...")
         const profitMicroStx = Math.floor(profitInStx * 1_000_000)
         const txId = await sendStx(profitMicroStx, userAddress, adminPrivateKey)
-        console.log("[v0] Fallback transfer successful with txId:", txId)
+        console.log("[v0] ✅ Direct admin transfer successful with txId:", txId)
+      } catch (directTransferError) {
+        console.error("[v0] ❌ Direct admin transfer failed:", directTransferError instanceof Error ? directTransferError.message : String(directTransferError))
+        console.log("[v0] 🔄 Falling back to contract admin payout...")
+
+        // Fallback: Try contract admin payout if direct transfer fails
+        try {
+          await adminPayout(userAddress, profitInStx, adminPrivateKey)
+          console.log("[v0] ✅ Contract admin payout successful")
+        } catch (contractError) {
+          console.error("[v0] ❌ Contract admin payout also failed:", contractError instanceof Error ? contractError.message : String(contractError))
+          console.log("[v0] ⚠️ Profit payout failed - both direct transfer and contract payout failed")
+        }
       }
     } catch (error) {
-      console.error("[v0] Admin payout failed:", error)
+      console.error("[v0] Admin payout process failed:", error)
     }
   } else if (result.pnl > 0 && SENDER_KEY) {
     // Server-side admin payout using config admin key
     try {
-      const profitInStx = convertUsdProfitToStx(result.pnl)
-      console.log("[v0] Server-side USD Profit:", result.pnl, "STX Profit:", profitInStx)
+      // Get current STX price for accurate profit conversion
+      const currentStxPrice = await priceFeedManager.getPrice("STX")
+      const profitInStx = convertUsdProfitToStx(result.pnl, currentStxPrice)
+      console.log("[v0] Server-side USD Profit:", result.pnl, "STX Profit:", profitInStx, "STX Price:", currentStxPrice)
 
       try {
         await adminPayout(userAddress, profitInStx, SENDER_KEY)

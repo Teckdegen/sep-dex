@@ -50,30 +50,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function createWalletWithPasskey(userName: string): Promise<User> {
     try {
-      setIsLoading(true)
-      console.log("[v0] Creating Turnkey wallet with passkey for:", userName)
+      setIsLoading(true);
+      console.log("[v0] Creating Turnkey wallet with passkey for:", userName);
 
-      // Create sub-organization with passkey (this creates the passkey and sub-org in one step)
-      const subOrgResponse = await createUserSubOrg(userName)
-      const subOrgId = subOrgResponse.subOrganizationId
+      // First, try to create a Turnkey wallet with passkey
+      try {
+        // Create sub-organization with passkey (this creates the passkey and sub-org in one step)
+        const subOrgResponse = await createUserSubOrg(userName);
+        const subOrgId = subOrgResponse.subOrganizationId;
 
-      // Create Stacks wallet
-      const walletResponse = await createStacksWallet(subOrgId, `${userName}-stacks-wallet`)
-      const walletId = walletResponse.walletId
-      const walletAddress = walletResponse.addresses[0] // First address
-      const privateKey = walletResponse.privateKey // Private key from mock implementation
+        // Create Stacks wallet
+        const walletResponse = await createStacksWallet(subOrgId, `${userName}-stacks-wallet`);
+        const walletId = walletResponse.walletId;
+        const walletAddress = walletResponse.addresses[0]; // First address
 
-      // Save user to localStorage, including the private key for Turnkey wallets
-      const newUser = await createUserInStorage(subOrgId, walletAddress, walletId, privateKey)
-      setUser(newUser)
+        // Save user to localStorage
+        const newUser = await createUserInStorage(subOrgId, walletAddress, walletId);
+        setUser(newUser);
 
-      console.log("[v0] Turnkey wallet created successfully with passkey:", newUser.walletAddress)
-      return newUser
+        console.log("[v0] Turnkey wallet created successfully with passkey:", newUser.walletAddress);
+        return newUser;
+      } catch (turnkeyError) {
+        console.error("[v0] Turnkey wallet creation failed, falling back to local wallet:", turnkeyError);
+        
+        // If Turnkey fails, fall back to creating a local wallet
+        const localUser = await createLocalWallet(userName);
+        setUser(localUser);
+        return localUser;
+      }
     } catch (error) {
-      console.error("[v0] Wallet creation with passkey failed:", error)
-      throw error
+      console.error("[v0] Wallet creation failed:", error);
+      throw error;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

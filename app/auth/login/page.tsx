@@ -45,7 +45,7 @@ export default function LoginPage() {
         await createLocalWallet(userName)
         router.push("/trade")
       } else {
-        // Use Turnkey
+        // Use Turnkey with passkey creation UI
         console.log("[v0] Creating Turnkey wallet with passkey for:", userName)
         await createWalletWithPasskey(userName)
         router.push("/trade")

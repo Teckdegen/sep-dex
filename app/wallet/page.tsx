@@ -16,10 +16,12 @@ export default function WalletPage() {
   const router = useRouter()
   const [balance, setBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
+  const [isRequestingFaucet, setIsRequestingFaucet] = useState(false)
+  const [faucetTxId, setFaucetTxId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  
+
   // Send STX states
   const [recipientAddress, setRecipientAddress] = useState("")
   const [amount, setAmount] = useState("")
@@ -128,55 +130,57 @@ export default function WalletPage() {
     }
   }
 
-  async function handleSendStx() {
-    if (!user?.walletAddress || !recipientAddress || !amount) {
-      setError("Please fill in all fields")
+  async function handleRequestFaucet() {
+    if (!user?.walletAddress) {
+      setError("No wallet address available")
       return
     }
 
     try {
-      setIsSending(true)
+      setIsRequestingFaucet(true)
       setError(null)
       setSuccess(null)
 
-      // Validate amount
-      const amountFloat = parseFloat(amount)
-      if (isNaN(amountFloat) || amountFloat <= 0) {
-        throw new Error("Invalid amount")
+      console.log("[v0] Requesting STX from faucet for address:", user.walletAddress)
+
+      const response = await fetch(
+        `https://api.testnet.stacks.co/extended/v1/faucets/stx?address=${user.walletAddress}&stacking=false`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`Faucet request failed: ${response.status} ${response.statusText}`)
       }
 
-      // Get fresh balance before checking
-      const currentBalance = await getStacksBalance(user.walletAddress)
-      console.log("[v0] Current balance:", currentBalance, "STX")
+      const data = await response.json()
+      console.log("[v0] Faucet response:", data)
 
-      // Check if user has enough balance (amount is in STX, balance is in STX)
-      if (amountFloat > currentBalance) {
-        throw new Error("Insufficient balance")
+      // Set the transaction ID for monitoring
+      if (data.txId) {
+        setFaucetTxId(data.txId)
+        setSuccess(`Faucet request successful! Transaction ID: ${data.txId}`)
+
+        // Monitor the faucet transaction
+        setLastTxId(data.txId)
+      } else {
+        setSuccess("Faucet request submitted successfully!")
       }
 
-      // Get user's private key
-      const userPrivateKey = getUserPrivateKey()
+      // Refresh balance after a short delay
+      setTimeout(() => {
+        forceRefreshBalance()
+      }, 2000)
 
-      console.log("[v0] Sending STX:", amountFloat, "STX to", recipientAddress)
-
-      // Send STX using user's private key (amount is in STX, sendStx expects microSTX)
-      const txId = await sendStx(Math.floor(amountFloat * 1_000_000), recipientAddress, userPrivateKey)
-
-      setSuccess(`Transfer successful! Transaction ID: ${txId}`)
-      setRecipientAddress("")
-      setAmount("")
-      setLastTxId(txId) // Track transaction to monitor status
-      
-      // Update balance after successful transfer
-      setBalance(currentBalance - amountFloat)
-      
-      // Instead of immediately reloading balance, wait for transaction confirmation
-      // The useEffect for lastTxId will handle balance updates
     } catch (err) {
-      console.error("[v0] Transfer failed:", err)
-      setError(err instanceof Error ? err.message : "Transfer failed")
+      console.error("[v0] Faucet request failed:", err)
+      setError(err instanceof Error ? err.message : "Faucet request failed")
     } finally {
-      setIsSending(false)
+      setIsRequestingFaucet(false)
     }
   }
 
@@ -224,14 +228,32 @@ export default function WalletPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label>Available Balance</Label>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={forceRefreshBalance}
-                        disabled={isLoadingBalance}
-                      >
-                        <RefreshCw className={`h-4 w-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={forceRefreshBalance}
+                          disabled={isLoadingBalance}
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleRequestFaucet}
+                          disabled={isRequestingFaucet}
+                          className="text-xs"
+                        >
+                          {isRequestingFaucet ? (
+                            <>
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              Requesting...
+                            </>
+                          ) : (
+                            "Request STX"
+                          )}
+                        </Button>
+                      </div>
                     </div>
                     <div className="p-4 bg-muted rounded-lg">
                       <div className="text-3xl font-bold text-foreground">
@@ -330,24 +352,14 @@ export default function WalletPage() {
                 </CardContent>
               </Card>
 
-              {/* Transaction Status */}
-              {error && (
-                <Card className="border-destructive/50 bg-destructive/10 mt-6 shadow">
+              {/* Faucet Status */}
+              {faucetTxId && (
+                <Card className="border-blue-500/50 bg-blue-500/10 mt-6 shadow">
                   <CardContent className="p-4">
-                    <p className="text-sm text-destructive">{error}</p>
-                  </CardContent>
-                </Card>
-              )}
-
-              {success && (
-                <Card className="border-green-500/50 bg-green-500/10 mt-6 shadow">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-green-500">{success}</p>
-                    {lastTxId && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Monitoring transaction status...
-                      </p>
-                    )}
+                    <p className="text-sm text-blue-500">Faucet request in progress...</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Transaction ID: {faucetTxId}
+                    </p>
                   </CardContent>
                 </Card>
               )}

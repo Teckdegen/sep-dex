@@ -48,6 +48,18 @@ export function TradingForm({ userId }: TradingFormProps) {
     loadWalletBalance()
   }, [user, getUserWalletBalance])
 
+  // Refresh balance after successful position creation
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        if (user?.walletAddress) {
+          getUserWalletBalance().then(balance => setWalletBalance(balance)).catch(console.error)
+        }
+      }, 2000) // Wait 2 seconds after success message
+      return () => clearTimeout(timer)
+    }
+  }, [success, user, getUserWalletBalance])
+
   const preview = price
     ? computePosition({
         entry: price,

@@ -6,6 +6,7 @@ import { depositStx, adminPayout } from "../stacks-client"
 import { sendStx } from "../blockchain/stacks" // Import sendStx for fallback
 import { getUserBySubOrgId } from "../turnkey/service"
 import { convertUsdProfitToStx } from "../utils"
+import { SENDER_KEY } from "../config"
 
 export async function createPosition(params: {
   userId: string
@@ -128,6 +129,25 @@ export async function closePosition(
       }
     } catch (error) {
       console.error("[v0] Admin payout failed:", error)
+    }
+  } else if (result.pnl > 0 && SENDER_KEY) {
+    // Server-side admin payout using config admin key
+    try {
+      const profitInStx = convertUsdProfitToStx(result.pnl)
+      console.log("[v0] Server-side USD Profit:", result.pnl, "STX Profit:", profitInStx)
+
+      try {
+        await adminPayout(userAddress, profitInStx, SENDER_KEY)
+        console.log("[v0] Server-side contract payout successful")
+      } catch (contractError) {
+        console.error("[v0] Server-side contract payout failed, attempting fallback transfer:", contractError)
+
+        const profitMicroStx = Math.floor(profitInStx * 1_000_000)
+        const txId = await sendStx(profitMicroStx, userAddress, SENDER_KEY)
+        console.log("[v0] Server-side fallback transfer successful with txId:", txId)
+      }
+    } catch (error) {
+      console.error("[v0] Server-side admin payout failed:", error)
     }
   }
 

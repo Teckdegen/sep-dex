@@ -5,6 +5,7 @@ import { getPositions, savePosition, updatePosition } from "../storage/local-sto
 import { depositStx, adminPayout } from "../stacks-client"
 import { sendStx } from "../blockchain/stacks" // Import sendStx for fallback
 import { getUserBySubOrgId } from "../turnkey/service"
+import { convertUsdProfitToStx } from "../utils"
 
 export async function createPosition(params: {
   userId: string
@@ -108,18 +109,20 @@ export async function closePosition(
   // If profitable and admin key provided, trigger payout
   if (result.pnl > 0 && adminPrivateKey) {
     try {
-      const profitMicroStx = Math.floor(result.pnl * 1_000_000)
-      console.log("[v0] Triggering admin payout:", profitMicroStx)
+      // Convert USD profit to STX amount for payout
+      const profitInStx = convertUsdProfitToStx(result.pnl)
+      console.log("[v0] USD Profit:", result.pnl, "STX Profit:", profitInStx)
 
       // Try to call admin payout contract function first
       try {
         // Call admin payout to send profits to user
-        await adminPayout(userAddress, profitMicroStx, adminPrivateKey)
+        await adminPayout(userAddress, profitInStx, adminPrivateKey)
         console.log("[v0] Contract payout successful")
       } catch (contractError) {
         console.error("[v0] Contract payout failed, attempting fallback transfer:", contractError)
-        
+
         // Fallback: Send STX directly from admin wallet to user
+        const profitMicroStx = Math.floor(profitInStx * 1_000_000)
         const txId = await sendStx(profitMicroStx, userAddress, adminPrivateKey)
         console.log("[v0] Fallback transfer successful with txId:", txId)
       }

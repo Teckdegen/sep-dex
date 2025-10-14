@@ -49,7 +49,7 @@ export function TradingForm({ userId }: TradingFormProps) {
       if (user?.walletAddress) {
         try {
           const balance = await getStacksBalance(user.walletAddress)
-          setWalletBalance(balance / 1_000_000) // Convert from microSTX to STX
+          setWalletBalance(balance) // API already returns STX, no conversion needed
         } catch (error) {
           console.error("[v0] Failed to load wallet balance:", error)
         }
@@ -65,7 +65,7 @@ export function TradingForm({ userId }: TradingFormProps) {
       const timer = setTimeout(() => {
         if (user?.walletAddress) {
           getStacksBalance(user.walletAddress)
-            .then(balance => setWalletBalance(balance / 1_000_000))
+            .then(balance => setWalletBalance(balance)) // API already returns STX
             .catch(console.error)
         }
       }, 2000) // Wait 2 seconds after success message

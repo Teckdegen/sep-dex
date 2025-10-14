@@ -48,6 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function createWallet(userName: string): Promise<User> {
+    return createWalletWithPasskey(userName);
+  }
+
   async function createWalletWithPasskey(userName: string): Promise<User> {
     try {
       setIsLoading(true);
@@ -86,39 +90,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function createWallet(userName: string): Promise<User> {
-    return createWalletWithPasskey(userName)
-  }
-
   async function login(): Promise<User> {
     try {
-      setIsLoading(true)
-      console.log("[v0] Attempting passkey login")
+      setIsLoading(true);
+      console.log("[v0] Attempting passkey login");
 
       // Try login with passkey
-      const loginResponse = await loginWithPasskey()
-      
-      // Check if we have an existing user
-      const existingUser = getUser()
+      try {
+        const loginResponse = await loginWithPasskey();
+        
+        // Check if we have an existing user
+        const existingUser = getUser();
 
-      if (existingUser && existingUser.subOrgId === loginResponse.organizationId) {
-        setUser(existingUser)
-        console.log("[v0] Login successful for existing user:", existingUser.walletAddress)
-        return existingUser
-      } else if (loginResponse.organizationId) {
-        // This is a new user or user without local storage
-        // We need to get or create their wallet info
-        console.log("[v0] New user login, need to create user object")
-        // For now, we'll throw an error asking them to create a wallet
-        throw new Error("Please create a wallet first")
+        if (existingUser && existingUser.subOrgId === loginResponse.organizationId) {
+          setUser(existingUser);
+          console.log("[v0] Login successful for existing user:", existingUser.walletAddress);
+          return existingUser;
+        } else if (loginResponse.organizationId) {
+          // This is a new user or user without local storage
+          // We need to get or create their wallet info
+          console.log("[v0] New user login, need to create user object");
+          // For now, we'll throw an error asking them to create a wallet
+          throw new Error("Please create a wallet first");
+        }
+      } catch (loginError) {
+        console.log("[v0] Passkey login failed, falling back to local wallet creation");
+        // If passkey login fails, fall back to creating a local wallet
+        const userName = "User"; // Default username for fallback
+        const localUser = await createLocalWallet(userName);
+        setUser(localUser);
+        return localUser;
       }
 
-      throw new Error("Login failed")
+      throw new Error("Login failed");
     } catch (loginError) {
-      console.error("[v0] Login failed:", loginError)
-      throw loginError
+      console.error("[v0] Login failed:", loginError);
+      throw loginError;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
+    }
+  }
+
+  async function loginOrCreateWallet(userName: string): Promise<User> {
+    try {
+      setIsLoading(true);
+      console.log("[v0] Attempting login or creating wallet for:", userName);
+
+      // Try login first
+      try {
+        const loginResponse = await loginWithPasskey();
+        const existingUser = getUser();
+
+        if (existingUser && existingUser.subOrgId === loginResponse.organizationId) {
+          setUser(existingUser);
+          console.log("[v0] Login successful:", existingUser.walletAddress);
+          return existingUser;
+        } else if (loginResponse.organizationId) {
+          // This is an existing Turnkey user without local storage
+          // We need to create a local user object for them
+          console.log("[v0] Existing Turnkey user without local storage, creating user object");
+          
+          // Create a minimal user object based on the login response
+          // In a real implementation, we would fetch the wallet details from Turnkey
+          // For now, we'll redirect them to create a proper wallet
+          throw new Error("Please create a wallet to continue");
+        }
+      } catch (loginError) {
+        console.log("[v0] Login failed or user not found, will create new wallet for:", userName);
+      }
+
+      // If login fails or no existing user, create a new wallet
+      // But first check if user already has a local wallet
+      const existingLocalUser = getUser();
+      if (existingLocalUser && existingLocalUser.subOrgId === "local-wallet") {
+        setUser(existingLocalUser);
+        console.log("[v0] Using existing local wallet:", existingLocalUser.walletAddress);
+        return existingLocalUser;
+      }
+
+      // Try to create a Turnkey wallet with passkey, fallback to local wallet if it fails
+      return await createWalletWithPasskey(userName || "User");
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -157,49 +210,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("[v0] Deposit failed:", error)
       throw error
-    }
-  }
-
-  async function loginOrCreateWallet(userName: string): Promise<User> {
-    try {
-      setIsLoading(true)
-      console.log("[v0] Attempting login or creating wallet for:", userName)
-
-      // Try login first
-      try {
-        const loginResponse = await loginWithPasskey()
-        const existingUser = getUser()
-
-        if (existingUser && existingUser.subOrgId === loginResponse.organizationId) {
-          setUser(existingUser)
-          console.log("[v0] Login successful:", existingUser.walletAddress)
-          return existingUser
-        } else if (loginResponse.organizationId) {
-          // This is an existing Turnkey user without local storage
-          // We need to create a local user object for them
-          console.log("[v0] Existing Turnkey user without local storage, creating user object")
-          
-          // Create a minimal user object based on the login response
-          // In a real implementation, we would fetch the wallet details from Turnkey
-          // For now, we'll redirect them to create a proper wallet
-          throw new Error("Please create a wallet to continue")
-        }
-      } catch (loginError) {
-        console.log("[v0] Login failed or user not found, will create new wallet for:", userName)
-      }
-
-      // If login fails or no existing user, create a new wallet
-      // But first check if user already has a local wallet
-      const existingLocalUser = getUser()
-      if (existingLocalUser && existingLocalUser.subOrgId === "local-wallet") {
-        setUser(existingLocalUser)
-        console.log("[v0] Using existing local wallet:", existingLocalUser.walletAddress)
-        return existingLocalUser
-      }
-
-      return await createWalletWithPasskey(userName || "User")
-    } finally {
-      setIsLoading(false)
     }
   }
 

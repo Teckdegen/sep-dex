@@ -24,24 +24,27 @@ export async function createUserSubOrg(userName: string) {
   try {
     console.log("[v0] Creating sub-organization for user:", userName)
     
-    // Use the API route instead of direct SDK calls
-    const response = await fetch('/api/turnkey/create-sub-org', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userName }),
-    })
+    // Dynamically import Turnkey SDK to avoid SSR issues
+    const { getTurnkeyClient } = await import("./client");
     
-    if (!response.ok) {
-      throw new Error(`Failed to create sub-organization: ${response.statusText}`)
-    }
+    // Get Turnkey client
+    const turnkeyClient = getTurnkeyClient();
     
-    const data = await response.json()
-    return { subOrganizationId: data.subOrganizationId }
+    // Create sub-organization with passkey (this creates the passkey and sub-org in one step)
+    const response = await turnkeyClient.createSubOrganization({
+      subOrganizationName: `user-${userName}-${Date.now()}`,
+      rootUsers: [{
+        userName: userName,
+        authenticators: [], // passkey will be added automatically by the WebAuthn stamper
+      }],
+      rootQuorumThreshold: 1,
+    });
+
+    console.log("[v0] Sub-organization created:", response);
+    return response;
   } catch (error) {
-    console.error("[v0] Sub-organization creation failed:", error)
-    throw error
+    console.error("[v0] Sub-organization creation failed:", error);
+    throw error;
   }
 }
 
@@ -50,29 +53,39 @@ export async function createStacksWallet(subOrgId: string, walletName: string): 
   console.log("[v0] Creating Stacks wallet for sub-org:", subOrgId)
 
   try {
-    // Use the API route instead of direct SDK calls
-    const response = await fetch('/api/turnkey/create-wallet', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ organizationId: subOrgId, walletName }),
-    })
+    // Dynamically import Turnkey SDK to avoid SSR issues
+    const { getTurnkeyClient } = await import("./client");
     
-    if (!response.ok) {
-      throw new Error(`Failed to create wallet: ${response.statusText}`)
-    }
+    // Get Turnkey client
+    const turnkeyClient = getTurnkeyClient();
     
-    const data = await response.json()
+    // Create Stacks wallet in the sub-organization
+    const response = await turnkeyClient.createWallet({
+      organizationId: subOrgId,
+      walletName: walletName,
+      accounts: [
+        {
+          curve: "CURVE_SECP256K1",
+          pathFormat: "PATH_FORMAT_BIP32",
+          path: "m/44'/5757'/0'/0/0",
+          addressFormat: "ADDRESS_FORMAT_UNCOMPRESSED",
+        },
+      ],
+    });
+
+    // Get the wallet accounts to retrieve the address
+    const accountsResponse = await turnkeyClient.getWalletAccounts({
+      organizationId: subOrgId,
+      walletId: response.walletId,
+    });
+
     return {
-      walletId: data.walletId,
-      addresses: data.addresses
-      // Note: In real Turnkey implementation, private key is not returned
-      // Private keys are managed securely by Turnkey and never exposed
-    }
+      walletId: response.walletId,
+      addresses: accountsResponse.accounts.map((account: any) => account.address),
+    };
   } catch (error) {
-    console.error("[v0] Wallet creation failed:", error)
-    throw error
+    console.error("[v0] Wallet creation failed:", error);
+    throw error;
   }
 }
 
@@ -80,31 +93,27 @@ export async function loginWithPasskey() {
   console.log("[v0] Attempting passkey login")
 
   try {
-    // Use the API route instead of direct SDK calls
-    const response = await fetch('/api/turnkey/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({}), // No body needed for login
-    })
+    // Dynamically import Turnkey SDK to avoid SSR issues
+    const { getTurnkeyClient } = await import("./client");
     
-    if (!response.ok) {
-      throw new Error(`Login failed: ${response.statusText}`)
-    }
+    // Get Turnkey client
+    const turnkeyClient = getTurnkeyClient();
     
-    const data = await response.json()
+    // Attempt passkey login - this will trigger the WebAuthn prompt
+    const response = await turnkeyClient.whoami();
+    
+    console.log("[v0] Passkey login successful:", response);
     return {
-      organizationId: data.organizationId,
-      userId: data.userId,
+      organizationId: response.organizationId,
+      userId: response.userId,
       user: {
-        userId: data.userId,
-        username: "user"
+        userId: response.userId,
+        username: response.username || "user"
       }
     }
   } catch (error) {
-    console.error("[v0] Login failed:", error)
-    throw error
+    console.error("[v0] Passkey login failed:", error);
+    throw error;
   }
 }
 

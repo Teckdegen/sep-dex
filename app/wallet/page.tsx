@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, Send, RefreshCw, Copy, Check } from "lucide-react"
+import { Loader2, Send, RefreshCw, Copy, Check, Key, AlertTriangle } from "lucide-react"
 import { getStacksBalance, sendStx } from "@/lib/blockchain/stacks"
 import { AppLayout } from "@/components/layout/app-layout"
 
@@ -21,6 +21,7 @@ export default function WalletPage() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [privateKeyCopied, setPrivateKeyCopied] = useState(false)
 
   // Send STX states
   const [recipientAddress, setRecipientAddress] = useState("")
@@ -28,70 +29,37 @@ export default function WalletPage() {
   const [isSending, setIsSending] = useState(false)
   const [lastTxId, setLastTxId] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/auth/login")
-    }
-  }, [isAuthenticated, isLoading, router])
+  // Check if this is a local wallet
+  const isLocalWallet = user?.subOrgId === "local-wallet"
 
-  useEffect(() => {
+export default function WalletPage() {
+  const { user, isAuthenticated, isLoading, getUserPrivateKey } = useAuth()
+  const router = useRouter()
+  const [balance, setBalance] = useState<number>(0)
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
+  const [isRequestingFaucet, setIsRequestingFaucet] = useState(false)
+  const [faucetTxId, setFaucetTxId] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [privateKeyCopied, setPrivateKeyCopied] = useState(false)
+
+  // Send STX states
+  const [recipientAddress, setRecipientAddress] = useState("")
+  const [amount, setAmount] = useState("")
+  const [isSending, setIsSending] = useState(false)
+  const [lastTxId, setLastTxId] = useState<string | null>(null)
+
+  // Check if this is a local wallet
+  const isLocalWallet = user?.subOrgId === "local-wallet"
+
+  function copyAddress() {
     if (user?.walletAddress) {
-      loadBalance()
-      
-      // Set up automatic balance refresh every 2 minutes (120000 ms)
-      const balanceInterval = setInterval(loadBalance, 120000)
-      
-      // Clean up interval on component unmount
-      return () => clearInterval(balanceInterval)
+      navigator.clipboard.writeText(user.walletAddress)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     }
-  }, [user])
-
-  // Effect to monitor transaction status
-  useEffect(() => {
-    if (lastTxId) {
-      // Check transaction status and update balance when confirmed
-      const checkTxStatus = async () => {
-        try {
-          const response = await fetch(`https://stacks-node-api.testnet.stacks.co/extended/v1/tx/${lastTxId}`)
-          const data = await response.json()
-          
-          console.log("[v0] Transaction status:", data.tx_status)
-          
-          if (data.tx_status === 'success') {
-            // Transaction confirmed, refresh balance
-            console.log("[v0] Transaction confirmed, refreshing balance")
-            await forceRefreshBalance()
-            setLastTxId(null)
-          } else if (data.tx_status === 'abort_by_response' || data.tx_status === 'abort_by_post_condition') {
-            // Transaction failed, stop checking
-            console.log("[v0] Transaction failed, stopping monitoring")
-            setLastTxId(null)
-          }
-          // For pending status, we'll check again
-        } catch (error) {
-          console.error("[v0] Failed to check transaction status:", error)
-        }
-      }
-      
-      // Check transaction status every 5 seconds
-      const txInterval = setInterval(checkTxStatus, 5000)
-      
-      // Clean up interval after 2 minutes (maximum wait time)
-      const timeout = setTimeout(() => {
-        console.log("[v0] Transaction monitoring timeout, forcing balance refresh")
-        clearInterval(txInterval)
-        clearTimeout(timeout)
-        setLastTxId(null)
-        // Force a balance refresh even if we didn't get confirmation
-        forceRefreshBalance()
-      }, 120000)
-      
-      return () => {
-        clearInterval(txInterval)
-        clearTimeout(timeout)
-      }
-    }
-  }, [lastTxId])
+  }
 
   async function loadBalance() {
     if (!user?.walletAddress) {
@@ -120,14 +88,6 @@ export default function WalletPage() {
     // Add a small delay to ensure any pending transactions are processed
     await new Promise(resolve => setTimeout(resolve, 2000))
     await loadBalance()
-  }
-
-  function copyAddress() {
-    if (user?.walletAddress) {
-      navigator.clipboard.writeText(user.walletAddress)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
   }
 
   async function handleSendStx() {

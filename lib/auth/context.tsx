@@ -313,8 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       // For Turnkey wallets, we cannot get the private key as it's managed securely by Turnkey
       // In a real implementation, we would use Turnkey's signing API for transactions
-      // For this implementation, we'll throw an error as the current code expects a private key
-      throw new Error("Turnkey wallets do not expose private keys. Use Turnkey's signing API for transactions.");
+      throw new Error("Private key not available for Turnkey wallets");
     }
   }
 
@@ -328,7 +327,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('sep-dex-user')
     localStorage.removeItem('sep-dex-positions')
     localStorage.removeItem('sep-dex-transactions')
-    
+    localStorage.removeItem('sep-dex-price-cache')
     setUser(null)
     console.log("[v0] User logged out and all data cleared")
   }
@@ -337,6 +336,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        createWallet,
+        login,
+        loginOrCreateWallet,
+        logout,
+        depositCollateral,
+        createWalletWithPasskey,
+        createLocalWallet: createLocalWalletAndSetUser,
+        importExistingWallet: importLocalWalletAndSetUser,
+        getUserWalletBalance,
+        getUserPrivateKey,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
+importExistingWallet: importLocalWalletAndSetUser,
+getUserWalletBalance,
+getUserPrivateKey,
+}}
+>
+{children}
+</AuthContext.Provider>
+)
       value={{
         user,
         isLoading,

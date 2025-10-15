@@ -77,10 +77,10 @@ export default function TradePage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-bold text-white mb-2">Trading Terminal</h1>
+                <h1 className="text-4xl font-bold text-white mb-2 animate-pulse">Trading Terminal</h1>
                 <p className="text-gray-400 text-lg">Execute perpetual futures trades with precision</p>
               </div>
-              <Badge variant="outline" className="bg-green-600/10 border-green-500 text-green-400 px-4 py-2">
+              <Badge variant="outline" className="bg-green-600/10 border-green-500 text-green-400 px-4 py-2 animate-bounce">
                 <Activity className="h-4 w-4 mr-2" />
                 Live Market
               </Badge>
@@ -100,17 +100,17 @@ export default function TradePage() {
                 </CardHeader>
                 <CardContent className="pt-0">
                   {/* Market Indicator */}
-                  <div className="mb-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                  <div className="mb-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600 hover:bg-gray-600/50 transition-all duration-200">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-400">Current Price</p>
-                        <div className="text-3xl font-bold text-green-400">
+                        <div className="text-3xl font-bold text-green-400 animate-pulse">
                           {prices && prices[selectedAsset] ? `$${prices[selectedAsset].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Loading..."}
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-400">24h Change</p>
-                        <div className="text-lg font-semibold text-green-400">+2.45%</div>
+                        <div className="text-lg font-semibold text-green-400 animate-bounce">+2.45%</div>
                       </div>
                     </div>
                   </div>
@@ -146,9 +146,9 @@ export default function TradePage() {
                           <Card
                             key={symbol}
                             onClick={() => setSelectedAsset(symbol as SupportedAsset)}
-                            className={`cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg ${
+                            className={`cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg hover:shadow-blue-500/20 ${
                               selectedAsset === symbol
-                                ? "border-blue-500 bg-blue-500/10 shadow-blue-500/20"
+                                ? "border-blue-500 bg-blue-500/10 shadow-blue-500/20 animate-pulse"
                                 : "border-gray-600 bg-gray-700/50 hover:bg-gray-700/70"
                             }`}
                           >
@@ -165,9 +165,9 @@ export default function TradePage() {
 
             {/* Right Column - Trading Form */}
             <div>
-              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl sticky top-6">
+              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl sticky top-6 hover:shadow-3xl transition-all duration-200">
                 <CardHeader>
-                  <CardTitle className="text-xl font-semibold text-white">Open Position</CardTitle>
+                  <CardTitle className="text-xl font-semibold text-white animate-bounce">Open Position</CardTitle>
                   <CardDescription className="text-gray-400">
                     Configure your trade parameters below
                   </CardDescription>

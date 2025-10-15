@@ -92,10 +92,10 @@ export default function PositionsPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-bold text-white mb-2">Positions Dashboard</h1>
+                <h1 className="text-4xl font-bold text-white mb-2 animate-pulse">Positions Dashboard</h1>
                 <p className="text-gray-400 text-lg">Monitor and manage your trading positions</p>
               </div>
-              <Button onClick={() => router.push("/trade")} className="bg-blue-600 hover:bg-blue-700">
+              <Button onClick={() => router.push("/trade")} className="bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all duration-200 animate-bounce">
                 <Target className="mr-2 h-5 w-5" />
                 Open New Position
               </Button>
@@ -104,43 +104,43 @@ export default function PositionsPage() {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+            <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl hover:shadow-3xl hover:scale-105 transition-all duration-200">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-3 text-lg font-semibold text-white">
-                  <BarChart3 className="h-6 w-6 text-blue-500" />
+                  <BarChart3 className="h-6 w-6 text-blue-500 animate-bounce" />
                   Open Positions
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-400">{openPositions.length}</div>
+                <div className="text-3xl font-bold text-blue-400 animate-pulse">{openPositions.length}</div>
                 <p className="text-sm text-gray-500 mt-2">Active trades</p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+            <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl hover:shadow-3xl hover:scale-105 transition-all duration-200">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-3 text-lg font-semibold text-white">
-                  <DollarSign className={`h-6 w-6 ${totalPnL >= 0 ? "text-green-500" : "text-red-500"}`} />
+                  <DollarSign className={`h-6 w-6 ${totalPnL >= 0 ? "text-green-500 animate-bounce" : "text-red-500"}`} />
                   Total PnL
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`text-3xl font-bold ${totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>
+                <div className={`text-3xl font-bold ${totalPnL >= 0 ? "text-green-400 animate-pulse" : "text-red-400"}`}>
                   {totalPnL >= 0 ? "+" : ""}${Math.abs(totalPnL).toFixed(2)}
                 </div>
                 <p className="text-sm text-gray-500 mt-2">Unrealized gains/losses</p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+            <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl hover:shadow-3xl hover:scale-105 transition-all duration-200">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-3 text-lg font-semibold text-white">
-                  <Activity className="h-6 w-6 text-blue-500" />
+                  <Activity className="h-6 w-6 text-blue-500 animate-bounce" />
                   Portfolio Value
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-white">$0.00</div>
+                <div className="text-3xl font-bold text-white animate-pulse">$0.00</div>
                 <p className="text-sm text-gray-500 mt-2">Total portfolio value</p>
               </CardContent>
             </Card>
@@ -167,12 +167,12 @@ export default function PositionsPage() {
                 </CardContent>
               </Card>
             ) : openPositions.length === 0 ? (
-              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl hover:shadow-3xl transition-all duration-200">
                 <CardContent className="p-8 text-center">
-                  <BarChart3 className="h-16 w-16 text-gray-500 mx-auto mb-4" />
+                  <BarChart3 className="h-16 w-16 text-gray-500 mx-auto mb-4 animate-bounce" />
                   <h3 className="text-xl font-semibold text-white mb-2">No Open Positions</h3>
                   <p className="text-gray-400 mb-4">You don't have any active positions. Start trading to open one!</p>
-                  <Button onClick={() => router.push("/trade")} className="bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={() => router.push("/trade")} className="bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all duration-200 animate-pulse">
                     Open Your First Position
                   </Button>
                 </CardContent>
@@ -180,7 +180,7 @@ export default function PositionsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {openPositions.map((position) => (
-                  <Card key={position.id} className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl hover:shadow-3xl transition-all duration-200">
+                  <Card key={position.id} className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl hover:shadow-3xl transition-all duration-200 animate-pulse">
                     <CardContent className="p-6">
                       <PositionCard position={position} />
                     </CardContent>

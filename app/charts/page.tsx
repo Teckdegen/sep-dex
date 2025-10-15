@@ -37,7 +37,11 @@ export default function ChartsPage() {
     )
   }
 
-  const assets: SupportedAsset[] = ["BTC", "ETH", "STX", "SOL"]
+  const assets: SupportedAsset[] = [
+    "BTC", "ETH", "STX", "SOL",
+    "BNB", "ADA", "XRP", "DOGE", "DOT",
+    "LTC", "AVAX", "MATIC", "UNI", "LINK", "BCH"
+  ]
 
   return (
     <AppLayout walletAddress={user.walletAddress}>
@@ -70,7 +74,7 @@ export default function ChartsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                   {assets.map((asset) => (
                     <Button
                       key={asset}
@@ -123,7 +127,7 @@ export default function ChartsPage() {
           </Card>
 
           {/* Individual Asset Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {assets.map((asset) => (
               <Card key={asset} className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
                 <CardHeader>

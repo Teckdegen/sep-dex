@@ -10,6 +10,17 @@ const ASSET_TO_BINANCE_SYMBOL: Record<string, string> = {
   ETH: "ETHUSDT",
   STX: "STXUSDT",
   SOL: "SOLUSDT",
+  BNB: "BNBUSDT",
+  ADA: "ADAUSDT",
+  XRP: "XRPUSDT",
+  DOGE: "DOGEUSDT",
+  DOT: "DOTUSDT",
+  LTC: "LTCUSDT",
+  AVAX: "AVAXUSDT",
+  MATIC: "MATICUSDT",
+  UNI: "UNIUSDT",
+  LINK: "LINKUSDT",
+  BCH: "BCHUSDT",
 }
 
 // CoinGecko IDs (backup source)
@@ -18,6 +29,17 @@ const ASSET_TO_COINGECKO_ID: Record<string, string> = {
   ETH: "ethereum",
   STX: "stacks",
   SOL: "solana",
+  BNB: "binancecoin",
+  ADA: "cardano",
+  XRP: "ripple",
+  DOGE: "dogecoin",
+  DOT: "polkadot",
+  LTC: "litecoin",
+  AVAX: "avalanche-2",
+  MATIC: "matic-network",
+  UNI: "uniswap",
+  LINK: "chainlink",
+  BCH: "bitcoin-cash",
 }
 
 export interface PriceData {
@@ -55,13 +77,7 @@ export async function getCurrentPrice(asset: string): Promise<number> {
     console.error(`[v0] Binance API error for ${asset}:`, error)
   }
 
-  // For STX, Binance is the only option, so if it fails, return 0
-  if (asset === "STX") {
-    console.error(`[v0] STX price not available from Binance`)
-    return 0
-  }
-
-  // Fallback to CoinGecko for BTC, ETH, and SOL
+  // Fallback to CoinGecko for all supported assets
   const coinGeckoId = ASSET_TO_COINGECKO_ID[asset]
   if (!coinGeckoId) {
     console.error(`[v0] Unsupported asset: ${asset}`)
@@ -175,7 +191,7 @@ export async function getPriceData(asset: string): Promise<PriceData> {
 
 // Get price history (Binance primary with time-based data, CoinGecko backup)
 export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ timestamp: number; price: number }>> {
-  // Try to get history from Binance first
+  // Try to get history from Binance first for all assets
   try {
     const binanceHistory = await getPriceHistoryFromBinance(asset, days)
     if (binanceHistory.length > 0) {
@@ -186,7 +202,7 @@ export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ 
     console.error(`[v0] Binance history failed for ${asset}:`, error)
   }
 
-  // Fallback to CoinGecko
+  // Fallback to CoinGecko for all supported assets
   const coinGeckoId = ASSET_TO_COINGECKO_ID[asset]
   if (!coinGeckoId) {
     throw new Error(`Unsupported asset: ${asset}`)

@@ -194,6 +194,17 @@ export function TradingForm({ userId }: TradingFormProps) {
                     <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
                     <SelectItem value="STX">Stacks (STX)</SelectItem>
                     <SelectItem value="SOL">Solana (SOL)</SelectItem>
+                    <SelectItem value="BNB">Binance Coin (BNB)</SelectItem>
+                    <SelectItem value="ADA">Cardano (ADA)</SelectItem>
+                    <SelectItem value="XRP">XRP (XRP)</SelectItem>
+                    <SelectItem value="DOGE">Dogecoin (DOGE)</SelectItem>
+                    <SelectItem value="DOT">Polkadot (DOT)</SelectItem>
+                    <SelectItem value="LTC">Litecoin (LTC)</SelectItem>
+                    <SelectItem value="AVAX">Avalanche (AVAX)</SelectItem>
+                    <SelectItem value="MATIC">Polygon (MATIC)</SelectItem>
+                    <SelectItem value="UNI">Uniswap (UNI)</SelectItem>
+                    <SelectItem value="LINK">Chainlink (LINK)</SelectItem>
+                    <SelectItem value="BCH">Bitcoin Cash (BCH)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -272,6 +283,17 @@ export function TradingForm({ userId }: TradingFormProps) {
                     <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
                     <SelectItem value="STX">Stacks (STX)</SelectItem>
                     <SelectItem value="SOL">Solana (SOL)</SelectItem>
+                    <SelectItem value="BNB">Binance Coin (BNB)</SelectItem>
+                    <SelectItem value="ADA">Cardano (ADA)</SelectItem>
+                    <SelectItem value="XRP">XRP (XRP)</SelectItem>
+                    <SelectItem value="DOGE">Dogecoin (DOGE)</SelectItem>
+                    <SelectItem value="DOT">Polkadot (DOT)</SelectItem>
+                    <SelectItem value="LTC">Litecoin (LTC)</SelectItem>
+                    <SelectItem value="AVAX">Avalanche (AVAX)</SelectItem>
+                    <SelectItem value="MATIC">Polygon (MATIC)</SelectItem>
+                    <SelectItem value="UNI">Uniswap (UNI)</SelectItem>
+                    <SelectItem value="LINK">Chainlink (LINK)</SelectItem>
+                    <SelectItem value="BCH">Bitcoin Cash (BCH)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

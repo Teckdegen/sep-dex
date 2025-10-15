@@ -1,4 +1,19 @@
-export type SupportedAsset = "BTC" | "ETH" | "STX" | "SOL"
+export type SupportedAsset =
+  | "BTC"
+  | "ETH"
+  | "STX"
+  | "SOL"
+  | "BNB"
+  | "ADA"
+  | "XRP"
+  | "DOGE"
+  | "DOT"
+  | "LTC"
+  | "AVAX"
+  | "MATIC"
+  | "UNI"
+  | "LINK"
+  | "BCH"
 
 export interface PriceData {
   asset: SupportedAsset

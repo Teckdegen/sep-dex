@@ -11,7 +11,7 @@ class PriceFeedManager {
       return memoryPrice
     }
 
-    // Level 2: Fetch from updated price feed (Binance primary, CoinGecko backup)
+    // Level 2: Fetch from price feed (Binance for supported pairs, CoinGecko backup)
     const freshPrice = await this.fetchFromPriceFeed(asset)
     this.updateMemoryCache(asset, freshPrice)
 
@@ -32,9 +32,57 @@ class PriceFeedManager {
   }
 
   private async fetchFromPriceFeed(asset: SupportedAsset): Promise<number> {
-    // Use the updated price feed implementation with Binance as primary source
+    // Use Binance API for supported USDT pairs, CoinGecko as backup
+    const binancePrice = await this.fetchFromBinance(asset)
+    if (binancePrice !== null) {
+      return binancePrice
+    }
+
+    // Fallback to CoinGecko if Binance fails
     const { getCurrentPrice } = await import('./coingecko')
     return getCurrentPrice(asset)
+  }
+
+  private async fetchFromBinance(asset: SupportedAsset): Promise<number | null> {
+    try {
+      // Map asset to Binance symbol (e.g., BTC -> BTCUSDT)
+      const binanceSymbol = this.getBinanceSymbol(asset)
+      if (!binanceSymbol) return null
+
+      const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`)
+      if (!response.ok) {
+        throw new Error(`Binance API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return parseFloat(data.price)
+    } catch (error) {
+      console.error(`[v0] Binance fetch failed for ${asset}:`, error)
+      return null
+    }
+  }
+
+  private getBinanceSymbol(asset: SupportedAsset): string | null {
+    // Map to Binance USDT pairs
+    const symbolMap: Record<SupportedAsset, string> = {
+      BTC: "BTCUSDT",
+      ETH: "ETHUSDT",
+      STX: "STXUSDT",
+      SOL: "SOLUSDT",
+      BNB: "BNBUSDT",
+      ADA: "ADAUSDT",
+      XRP: "XRPUSDT",
+      DOGE: "DOGEUSDT",
+      DOT: "DOTUSDT",
+      LTC: "LTCUSDT",
+      AVAX: "AVAXUSDT",
+      MATIC: "MATICUSDT",
+      UNI: "UNIUSDT",
+      LINK: "LINKUSDT",
+      BCH: "BCHUSDT",
+    }
+
+    return symbolMap[asset] || null
   }
 
   private updateMemoryCache(asset: SupportedAsset, price: number): void {
@@ -57,17 +105,20 @@ class PriceFeedManager {
   }
 
   async getAllPrices(): Promise<Record<SupportedAsset, number>> {
-    const assets: SupportedAsset[] = ["BTC", "ETH", "STX", "SOL"]
+    const assets: SupportedAsset[] = [
+      "BTC", "ETH", "STX", "SOL",
+      "BNB", "ADA", "XRP", "DOGE", "DOT",
+      "LTC", "AVAX", "MATIC", "UNI", "LINK", "BCH"
+    ]
     try {
       return await this.getPrices(assets)
     } catch (error) {
       console.error("[v0] Failed to fetch all prices:", error)
       // Return default prices instead of throwing an error to prevent the UI from breaking
       return {
-        BTC: 0,
-        ETH: 0,
-        STX: 0,
-        SOL: 0,
+        BTC: 0, ETH: 0, STX: 0, SOL: 0,
+        BNB: 0, ADA: 0, XRP: 0, DOGE: 0, DOT: 0,
+        LTC: 0, AVAX: 0, MATIC: 0, UNI: 0, LINK: 0, BCH: 0,
       }
     }
   }

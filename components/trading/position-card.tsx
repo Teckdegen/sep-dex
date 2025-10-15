@@ -72,9 +72,6 @@ export function PositionCard({ position }: PositionCardProps) {
 
   const isProfitable = pnl > 0
   
-  // Calculate PNL in dollars
-  const pnlInDollars = currentPrice > 0 ? (pnl / currentPrice) * position.collateral : 0
-
   return (
     <Card className={`border-border bg-card p-4 shadow-lg hover:shadow-xl transition-shadow ${isLiquidated ? "opacity-50" : ""}`}>
       <div className="mb-3 flex items-center justify-between">
@@ -130,7 +127,7 @@ export function PositionCard({ position }: PositionCardProps) {
             )}
             <div className="text-right">
               <div className={`font-bold ${isProfitable ? "text-success" : "text-danger"}`}>
-                ${Math.abs(pnl).toFixed(2)} ({Math.abs(pnlInDollars).toFixed(2)} STX)
+                ${Math.abs(pnl).toFixed(2)} USD
               </div>
               <div className={`text-xs font-medium ${isProfitable ? "text-success" : "text-danger"}`}>
                 {pnlPercent > 0 ? "+" : ""}

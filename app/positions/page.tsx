@@ -62,7 +62,8 @@ export default function PositionsPage() {
           const currentPrice = prices[position.symbol as SupportedAsset] as number;
           const isLong = position.side === "long";
           const priceDiff = isLong ? currentPrice - position.entry_price : position.entry_price - currentPrice;
-          const pnl = (priceDiff / position.entry_price) * position.collateral * position.leverage;
+          // PnL = size * priceDiff (since size = (collateral * leverage) / entry_price)
+          const pnl = position.size * priceDiff;
           total += pnl;
         }
       });

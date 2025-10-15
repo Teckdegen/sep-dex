@@ -20,9 +20,13 @@ export function PriceChart({ asset, height = 300 }: PriceChartProps) {
     async function fetchData() {
       try {
         setIsLoading(true)
-        const history = await getPriceHistory(asset, timeframe)
-        setData(history)
         setError(null)
+        const history = await getPriceHistory(asset, timeframe)
+        if (history.length === 0) {
+          setError("No historical data available for this asset and timeframe")
+        } else {
+          setData(history)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load chart")
       } finally {

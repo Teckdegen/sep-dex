@@ -25,10 +25,15 @@ export function computePosition(params: TradeParameters): TradeResult {
   // For short: profit when price < entry (entry - price)
   const priceDiff = direction === "long" ? price - entry : entry - price
 
-  // PnL calculation: PnL = Q × (Price Diff / Entry Price)
-  const pnl = positionSize * (priceDiff / entry)
+  // PnL calculation: PnL = Q × Price Diff (since Q already includes leverage)
+  // Where Q = positionSize = (collateral * leverage) / entry_price (number of units)
+  // Price Diff = current_price - entry_price for long, entry_price - current_price for short
+  // For long: PnL = (current_price - entry_price) × positionSize
+  // For short: PnL = (entry_price - current_price) × positionSize
+  const pnl = positionSize * priceDiff
 
   // Percentage return: PnL% = (Price Diff / Entry) × Leverage × 100
+  // This matches: PnL% = (Pₓ - Pₑ) / Pₑ × L × 100 for long
   const pnlPercent = (priceDiff / entry) * leverage * 100
 
   // Liquidation price calculation

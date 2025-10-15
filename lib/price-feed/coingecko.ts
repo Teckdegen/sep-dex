@@ -205,10 +205,12 @@ export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ 
   // Fallback to CoinGecko for all supported assets
   const coinGeckoId = ASSET_TO_COINGECKO_ID[asset]
   if (!coinGeckoId) {
-    throw new Error(`Unsupported asset: ${asset}`)
+    console.error(`[v0] Unsupported asset for history: ${asset}`)
+    return []
   }
 
   try {
+    console.log(`[v0] Fetching history for ${asset} from CoinGecko (ID: ${coinGeckoId})`)
     // Adjust interval based on days requested
     let interval = "daily"
     if (days <= 1) {
@@ -220,17 +222,23 @@ export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ 
     const response = await fetch(`${COINGECKO_API}/coins/${coinGeckoId}/market_chart?vs_currency=usd&days=${days}&interval=${interval}`)
 
     if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status}`)
+      console.error(`[v0] CoinGecko history API error for ${asset}: ${response.status}`)
+      return []
     }
 
     const data = await response.json()
+
+    if (!data.prices || data.prices.length === 0) {
+      console.error(`[v0] No history data for ${asset}`)
+      return []
+    }
 
     return data.prices.map(([timestamp, price]: [number, number]) => ({
       timestamp,
       price,
     }))
   } catch (error) {
-    console.error(`Failed to fetch price history for ${asset}:`, error)
+    console.error(`[v0] Failed to fetch price history for ${asset}:`, error)
     return [] // Return empty array instead of throwing error
   }
 }

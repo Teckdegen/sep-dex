@@ -117,6 +117,14 @@ export async function closePosition(
 
   console.log("[v0] Closing position:", { positionId, pnl: result.pnl, isLiquidated: result.isLiquidated })
 
+  // Update position
+  const updatedPosition: Position = {
+    ...position,
+    status: result.isLiquidated ? "liquidated" : "closed",
+    realized_pnl: result.pnl,
+    closed_at: new Date().toISOString(),
+  }
+
   // If profitable and admin key provided, trigger payout
   if (result.pnl > 0 && adminPrivateKey) {
     try {
@@ -124,9 +132,19 @@ export async function closePosition(
       const currentStxPrice = await priceFeedManager.getPrice("STX")
       console.log("[v0] Current STX price for profit conversion:", currentStxPrice)
 
+      // Use fallback price if price feed fails
+      const stxPriceForConversion = currentStxPrice > 0 ? currentStxPrice : 2.50
+      console.log("[v0] Using STX price for conversion:", stxPriceForConversion)
+
       // Convert USD profit to STX amount for payout
-      const profitInStx = convertUsdProfitToStx(result.pnl, currentStxPrice)
-      console.log("[v0] USD Profit:", result.pnl, "STX Profit:", profitInStx, "STX Price:", currentStxPrice)
+      const profitInStx = convertUsdProfitToStx(result.pnl, stxPriceForConversion)
+      console.log("[v0] USD Profit:", result.pnl, "STX Profit:", profitInStx, "STX Price:", stxPriceForConversion)
+
+      // If profit is 0 or negative, skip payout
+      if (profitInStx <= 0) {
+        console.log("[v0] Profit in STX is 0 or negative, skipping payout")
+        return updatedPosition
+      }
 
       // Try to use admin private key for direct payment first (user's preferred method)
       try {
@@ -155,8 +173,15 @@ export async function closePosition(
     try {
       // Get current STX price for accurate profit conversion
       const currentStxPrice = await priceFeedManager.getPrice("STX")
-      const profitInStx = convertUsdProfitToStx(result.pnl, currentStxPrice)
-      console.log("[v0] Server-side USD Profit:", result.pnl, "STX Profit:", profitInStx, "STX Price:", currentStxPrice)
+      const stxPriceForConversion = currentStxPrice > 0 ? currentStxPrice : 2.50
+      const profitInStx = convertUsdProfitToStx(result.pnl, stxPriceForConversion)
+      console.log("[v0] Server-side USD Profit:", result.pnl, "STX Profit:", profitInStx, "STX Price:", stxPriceForConversion)
+
+      // If profit is 0 or negative, skip payout
+      if (profitInStx <= 0) {
+        console.log("[v0] Profit in STX is 0 or negative, skipping payout")
+        return updatedPosition
+      }
 
       try {
         await adminPayout(userAddress, profitInStx, SENDER_KEY)
@@ -171,14 +196,6 @@ export async function closePosition(
     } catch (error) {
       console.error("[v0] Server-side admin payout failed:", error)
     }
-  }
-
-  // Update position
-  const updatedPosition: Position = {
-    ...position,
-    status: result.isLiquidated ? "liquidated" : "closed",
-    realized_pnl: result.pnl,
-    closed_at: new Date().toISOString(),
   }
 
   updatePosition(updatedPosition)

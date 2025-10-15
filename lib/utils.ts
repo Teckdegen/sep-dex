@@ -21,7 +21,12 @@ export function printError(operation: string, error: any) {
 // Convert USD profit to STX amount for payouts
 export function convertUsdProfitToStx(usdProfit: number, stxPrice?: number): number {
   // Get current STX price in USD - use provided price or fallback to default
-  const stxPriceUsd = stxPrice || getCurrentStxPrice()
+  const stxPriceUsd = stxPrice && stxPrice > 0 ? stxPrice : getCurrentStxPrice()
+
+  if (stxPriceUsd <= 0) {
+    console.error("[v0] Invalid STX price for profit conversion:", stxPriceUsd)
+    return 0
+  }
 
   // Convert USD profit to STX amount
   const stxProfit = usdProfit / stxPriceUsd

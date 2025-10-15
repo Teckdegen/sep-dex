@@ -93,20 +93,27 @@ export default function TradePage() {
               {/* Price Chart */}
               <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
                 <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white">
-                      <TrendingUp className="h-6 w-6 text-blue-500" />
-                      {selectedAsset} Price Chart
-                    </CardTitle>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-green-400">
-                        {prices && prices[selectedAsset] ? `$${prices[selectedAsset].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Loading..."}
-                      </div>
-                      <p className="text-sm text-gray-500">Current Price</p>
-                    </div>
-                  </div>
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white">
+                    <TrendingUp className="h-6 w-6 text-blue-500" />
+                    {selectedAsset} Price Chart
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
+                  {/* Market Indicator */}
+                  <div className="mb-6 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-400">Current Price</p>
+                        <div className="text-3xl font-bold text-green-400">
+                          {prices && prices[selectedAsset] ? `$${prices[selectedAsset].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Loading..."}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-400">24h Change</p>
+                        <div className="text-lg font-semibold text-green-400">+2.45%</div>
+                      </div>
+                    </div>
+                  </div>
                   <PriceChart symbol={selectedAsset} />
                 </CardContent>
               </Card>

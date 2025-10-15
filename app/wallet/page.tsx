@@ -32,6 +32,13 @@ export default function WalletPage() {
   // Check if this is a local wallet
   const isLocalWallet = user?.subOrgId === "local-wallet"
 
+  // Load balance when component mounts or user changes
+  useEffect(() => {
+    if (user?.walletAddress) {
+      loadBalance()
+    }
+  }, [user?.walletAddress])
+
   function copyAddress() {
     if (user?.walletAddress) {
       navigator.clipboard.writeText(user.walletAddress)

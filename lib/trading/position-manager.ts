@@ -136,7 +136,7 @@ export async function closePosition(
       const stxPriceForConversion = currentStxPrice > 0 ? currentStxPrice : 2.50
       console.log("[v0] Using STX price for conversion:", stxPriceForConversion)
 
-      // Convert USD profit to STX amount for payout
+      // Convert USD profit to STX amount for payout (always in STX)
       const profitInStx = convertUsdProfitToStx(result.pnl, stxPriceForConversion)
       console.log("[v0] USD Profit:", result.pnl, "STX Profit:", profitInStx, "STX Price:", stxPriceForConversion)
 
@@ -146,7 +146,7 @@ export async function closePosition(
         return updatedPosition
       }
 
-      // Try to use admin private key for direct payment first (user's preferred method)
+      // Send the calculated STX amount using admin private key
       try {
         console.log("[v0] Attempting direct admin transfer first...")
         const profitMicroStx = Math.floor(profitInStx * 1_000_000)
@@ -185,6 +185,7 @@ export async function closePosition(
         return updatedPosition
       }
 
+      // Send the calculated STX amount using admin private key (SENDER_KEY)
       try {
         console.log("[v0] Attempting server-side direct admin transfer first...")
         const profitMicroStx = Math.floor(profitInStx * 1_000_000)

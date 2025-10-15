@@ -17,14 +17,6 @@ export default function WalletPage() {
   const [balance, setBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
   const [isRequestingFaucet, setIsRequestingFaucet] = useState(false)
-  const [lastTxId, setLastTxId] = useState<string | null>(null)
-
-export default function WalletPage() {
-  const { user, isAuthenticated, isLoading, getUserPrivateKey } = useAuth()
-  const router = useRouter()
-  const [balance, setBalance] = useState<number>(0)
-  const [isLoadingBalance, setIsLoadingBalance] = useState(true)
-  const [isRequestingFaucet, setIsRequestingFaucet] = useState(false)
   const [faucetTxId, setFaucetTxId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -251,10 +251,13 @@ export async function createLocalWallet(userName: string): Promise<User> {
       throw new Error("Generated invalid private key format");
     }
     
+    // Regenerate address from formatted private key to ensure consistency
+    const finalAddress = getAddressFromPrivateKey(formattedPrivateKey, 'testnet')
+    
     // Create user object with real Stacks address
     const user: User = {
       id: `local-user-${Date.now()}`,
-      walletAddress: address,
+      walletAddress: finalAddress,
       walletId: "local-wallet",
       subOrgId: "local-wallet",
       createdAt: new Date().toISOString(),
@@ -263,11 +266,11 @@ export async function createLocalWallet(userName: string): Promise<User> {
     // Save to localStorage WITHOUT 0x prefix
     localStorage.setItem('local-wallet-private-key', formattedPrivateKey)
     localStorage.setItem('local-wallet-public-key', publicKey as string)
-    localStorage.setItem('local-wallet-address', address)
+    localStorage.setItem('local-wallet-address', finalAddress)
     localStorage.setItem('local-wallet-username', userName)
     saveUser(user)
     
-    console.log("[v0] Local Stacks wallet created with address:", address)
+    console.log("[v0] Local Stacks wallet created with address:", finalAddress)
     return user
   } catch (error) {
     console.error("[v0] Failed to create local Stacks wallet:", error)

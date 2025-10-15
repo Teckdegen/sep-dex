@@ -355,33 +355,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-importExistingWallet: importLocalWalletAndSetUser,
-getUserWalletBalance,
-getUserPrivateKey,
-}}
->
-{children}
-</AuthContext.Provider>
-)
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        createWallet,
-        login,
-        loginOrCreateWallet,
-        logout,
-        depositCollateral,
-        createWalletWithPasskey,
-        createLocalWallet: createLocalWalletAndSetUser,
-        importExistingWallet: importLocalWalletAndSetUser,
-        getUserWalletBalance,
-        getUserPrivateKey,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
 }
 
 export function useAuth() {

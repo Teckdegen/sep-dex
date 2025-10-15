@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { useAllPrices } from "@/lib/price-feed/hooks"
 import { checkLiquidations } from "@/lib/trading/position-manager"
-import { Loader2, TrendingUp, BarChart3 } from "lucide-react"
+import { Loader2, TrendingUp, BarChart3, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { TradingForm } from "@/components/trading/trading-form"
 import { PriceCard } from "@/components/trading/price-card"
 import { PriceChart } from "@/components/trading/price-chart"
@@ -35,7 +37,7 @@ export default function TradePage() {
       try {
         // Get admin private key from environment variables
         const adminPrivateKey = process.env.NEXT_PUBLIC_ADMIN_PRIVATE_KEY || '';
-        
+
         // Check for liquidations (cast prices to the expected type)
         await checkLiquidations(user.id, prices as Record<string, number>, adminPrivateKey);
       } catch (error) {
@@ -56,8 +58,11 @@ export default function TradePage() {
   if (isLoading || !user || !user.walletAddress) {
     console.log("[v0] Trade page - showing loading state")
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+          <p className="text-gray-300 text-lg">Loading Trading Interface...</p>
+        </div>
       </div>
     )
   }
@@ -66,71 +71,104 @@ export default function TradePage() {
 
   return (
     <AppLayout walletAddress={user.walletAddress}>
-      <div className="container mx-auto p-4">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Trading Dashboard</h2>
-          <p className="text-muted-foreground">Open and manage your perpetual futures positions</p>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left Column - Prices and Chart */}
-          <div className="space-y-6 lg:col-span-2">
-            {/* Price Chart */}
-            <div className="bg-card border border-border rounded-lg p-4 shadow">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                  <TrendingUp className="h-5 w-5" />
-                  {selectedAsset} Price Chart
-                </h2>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-foreground">
-                    {prices && prices[selectedAsset] ? `$${prices[selectedAsset].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Loading..."}
-                  </div>
-                </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+        <div className="container mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-2">Trading Terminal</h1>
+                <p className="text-gray-400 text-lg">Execute perpetual futures trades with precision</p>
               </div>
-              <PriceChart symbol={selectedAsset} />
-            </div>
-
-            {/* Live Prices */}
-            <div className="bg-card border border-border rounded-lg p-4 shadow">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-                <BarChart3 className="h-5 w-5" />
-                Live Prices
-              </h2>
-              {pricesLoading ? (
-                <div className="flex justify-center p-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : pricesError ? (
-                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-                  Failed to load prices: {pricesError}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {prices &&
-                    Object.entries(prices).map(([symbol, price]) => (
-                      <div 
-                        key={symbol} 
-                        onClick={() => setSelectedAsset(symbol as SupportedAsset)} 
-                        className={`cursor-pointer rounded-lg border p-3 transition-all hover:shadow-lg ${
-                          selectedAsset === symbol 
-                            ? "border-primary bg-primary/10" 
-                            : "border-border bg-secondary/30 hover:bg-secondary/50"
-                        }`}
-                      >
-                        <PriceCard symbol={symbol as any} price={price} />
-                      </div>
-                    ))}
-                </div>
-              )}
+              <Badge variant="outline" className="bg-green-600/10 border-green-500 text-green-400 px-4 py-2">
+                <Activity className="h-4 w-4 mr-2" />
+                Live Market
+              </Badge>
             </div>
           </div>
 
-          {/* Right Column - Trading Form */}
-          <div>
-            <div className="bg-card border border-border rounded-lg p-4 shadow sticky top-20">
-              <h2 className="mb-4 text-lg font-semibold text-foreground">Open Position</h2>
-              <TradingForm userId={user.id} />
+          <div className="grid gap-8 lg:grid-cols-3">
+            {/* Left Column - Prices and Chart */}
+            <div className="space-y-8 lg:col-span-2">
+              {/* Price Chart */}
+              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white">
+                      <TrendingUp className="h-6 w-6 text-blue-500" />
+                      {selectedAsset} Price Chart
+                    </CardTitle>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-green-400">
+                        {prices && prices[selectedAsset] ? `$${prices[selectedAsset].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Loading..."}
+                      </div>
+                      <p className="text-sm text-gray-500">Current Price</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <PriceChart symbol={selectedAsset} />
+                </CardContent>
+              </Card>
+
+              {/* Live Prices */}
+              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white">
+                    <BarChart3 className="h-6 w-6 text-blue-500" />
+                    Live Market Prices
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Click to select asset for detailed view
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {pricesLoading ? (
+                    <div className="flex justify-center p-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    </div>
+                  ) : pricesError ? (
+                    <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-6 text-center">
+                      <p className="text-red-400 font-medium">Failed to load prices</p>
+                      <p className="text-sm text-red-300 mt-2">{pricesError}</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {prices &&
+                        Object.entries(prices).map(([symbol, price]) => (
+                          <Card
+                            key={symbol}
+                            onClick={() => setSelectedAsset(symbol as SupportedAsset)}
+                            className={`cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-lg ${
+                              selectedAsset === symbol
+                                ? "border-blue-500 bg-blue-500/10 shadow-blue-500/20"
+                                : "border-gray-600 bg-gray-700/50 hover:bg-gray-700/70"
+                            }`}
+                          >
+                            <CardContent className="p-4">
+                              <PriceCard symbol={symbol as any} price={price} />
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Column - Trading Form */}
+            <div>
+              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl sticky top-6">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold text-white">Open Position</CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Configure your trade parameters below
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TradingForm userId={user.id} />
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

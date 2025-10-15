@@ -4,9 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { useAllPrices } from "@/lib/price-feed/hooks"
-import { Loader2, BarChart3, TrendingUp } from "lucide-react"
+import { Loader2, BarChart3, TrendingUp, Activity, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { PriceChart } from "@/components/trading/price-chart"
 import { AppLayout } from "@/components/layout/app-layout"
 import type { SupportedAsset } from "@/lib/price-feed/types"
@@ -26,8 +27,11 @@ export default function ChartsPage() {
   if (isLoading || !user) {
     return (
       <AppLayout walletAddress={user?.walletAddress || ""}>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+            <p className="text-gray-300 text-lg">Loading Market Charts...</p>
+          </div>
         </div>
       </AppLayout>
     )
@@ -37,86 +41,107 @@ export default function ChartsPage() {
 
   return (
     <AppLayout walletAddress={user.walletAddress}>
-      <div className="container mx-auto p-4">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Market Charts</h2>
-          <p className="text-muted-foreground">Real-time price charts and market data</p>
-        </div>
-
-        {/* Individual charts for all assets */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {assets.map((asset) => (
-            <Card key={asset} className="border-border bg-card p-4 shadow">
-              <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-primary" />
-                {asset} Price Chart
-              </h3>
-              <PriceChart symbol={asset} />
-            </Card>
-          ))}
-        </div>
-
-        {/* Selected asset detailed view */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-foreground">Detailed View: {selectedAsset}</h2>
-            <div className="flex gap-2">
-              {assets.map((asset) => (
-                <Button
-                  key={asset}
-                  variant={selectedAsset === asset ? "default" : "outline"}
-                  onClick={() => setSelectedAsset(asset)}
-                  size="sm"
-                  className={selectedAsset === asset ? "bg-primary hover:bg-primary/90" : "border-border hover:bg-secondary"}
-                >
-                  {asset}
-                </Button>
-              ))}
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+        <div className="container mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-4xl font-bold text-white mb-2">Market Analytics</h1>
+                <p className="text-gray-400 text-lg">Real-time price charts and comprehensive market data</p>
+              </div>
+              <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-blue-400 px-4 py-2">
+                <Eye className="h-4 w-4 mr-2" />
+                Live Data
+              </Badge>
             </div>
           </div>
-          <Card className="border-border bg-card p-4 shadow">
-            <PriceChart symbol={selectedAsset} />
-          </Card>
-        </div>
 
-        {/* Price overview */}
-        <Card className="border-border bg-card p-4 shadow">
-          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
-            <BarChart3 className="h-5 w-5 mr-2 text-primary" />
-            Current Prices
-          </h3>
-          <div className="space-y-4">
-            {pricesLoading ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : pricesError ? (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-                Failed to load prices: {pricesError}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {assets.map((asset) => {
-                  const price = prices?.[asset] || 0
-                  return (
-                    <div 
-                      key={asset} 
-                      className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${
-                        selectedAsset === asset 
-                          ? "border-primary bg-primary/10" 
-                          : "border-border hover:bg-muted"
-                      }`}
+          {/* Asset Selector */}
+          <div className="mb-8">
+            <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white">
+                  <BarChart3 className="h-6 w-6 text-blue-500" />
+                  Select Asset for Detailed View
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Choose an asset to view its price chart and detailed analytics
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {assets.map((asset) => (
+                    <Button
+                      key={asset}
                       onClick={() => setSelectedAsset(asset)}
+                      variant={selectedAsset === asset ? "default" : "outline"}
+                      className={`h-16 flex-col gap-2 ${
+                        selectedAsset === asset
+                          ? "bg-blue-600 hover:bg-blue-700"
+                          : "border-gray-600 hover:bg-gray-700"
+                      }`}
                     >
-                      <div className="text-sm font-medium text-foreground">{asset}</div>
-                      <div className="text-lg font-bold text-foreground">${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                      <span className="font-bold text-lg">{asset}</span>
+                      {prices && prices[asset] && (
+                        <span className="text-sm">
+                          ${prices[asset].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </Card>
+
+          {/* Main Chart */}
+          <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white">
+                <TrendingUp className="h-6 w-6 text-blue-500" />
+                {selectedAsset} Price Chart
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Real-time price movements and historical data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {pricesLoading ? (
+                <div className="flex justify-center p-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                </div>
+              ) : pricesError ? (
+                <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-6 text-center">
+                  <p className="text-red-400 font-medium">Failed to load price data</p>
+                  <p className="text-sm text-red-300 mt-2">{pricesError}</p>
+                </div>
+              ) : (
+                <PriceChart symbol={selectedAsset} />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Individual Asset Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {assets.map((asset) => (
+              <Card key={asset} className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-lg font-semibold text-white">
+                    <Activity className="h-6 w-6 text-blue-500" />
+                    {asset} Chart
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Price movements for {asset}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <PriceChart symbol={asset} />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       </div>
     </AppLayout>
   )

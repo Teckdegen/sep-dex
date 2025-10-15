@@ -231,9 +231,9 @@ export default function WalletPage() {
             <Card className="bg-gradient-to-r from-blue-600/20 to-green-600/20 backdrop-blur-sm border-gray-700 shadow-2xl">
               <CardContent className="p-8">
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="flex-1">
                     <p className="text-gray-400 text-sm mb-2">Available Balance</p>
-                    <div className="text-6xl font-bold text-white animate-pulse">
+                    <div className="text-6xl font-bold text-white animate-pulse mb-4">
                       {isLoadingBalance ? (
                         <Loader2 className="h-16 w-16 animate-spin text-blue-500" />
                       ) : (
@@ -241,10 +241,14 @@ export default function WalletPage() {
                       )}
                     </div>
                     <p className="text-gray-500 mt-2">≈ $ {(balance * 2.5).toFixed(2)} USD</p>
+                    <div className="mt-4 p-3 bg-gray-700/50 rounded-lg">
+                      <p className="text-gray-400 text-sm">Wallet Address</p>
+                      <code className="text-white text-sm break-all">{user.walletAddress}</code>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="p-4 bg-white/10 rounded-full mb-4">
-                      <Wallet className="h-12 w-12 text-blue-500" />
+                      <Wallet className="h-12 w-12 text-blue-500 animate-bounce" />
                     </div>
                     <Button
                       onClick={forceRefreshBalance}
@@ -317,82 +321,92 @@ export default function WalletPage() {
             {/* Send STX Form */}
             <div className="md:col-span-2">
               <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl hover:shadow-3xl transition-all duration-200">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white">
-                    <Send className="h-6 w-6 text-blue-500 animate-bounce" />
-                    Send STX
+                <CardHeader className="pb-6">
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white animate-bounce">
+                    <Send className="h-6 w-6 text-blue-500" />
+                    Send STX to Another Wallet
                   </CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Transfer STX tokens to another Stacks address
+                  <CardDescription className="text-gray-400 text-base">
+                    Transfer STX tokens securely to any Stacks address
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="grid gap-6 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label htmlFor="recipient-address" className="text-gray-300">Recipient Address</Label>
-                        <Input
-                          id="recipient-address"
-                          type="text"
-                          placeholder="ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
-                          value={recipientAddress}
-                          onChange={(e) => setRecipientAddress(e.target.value)}
-                          disabled={isSending}
-                          className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 hover:bg-gray-600 transition-all duration-200"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="amount" className="text-gray-300">Amount (STX)</Label>
-                        <Input
-                          id="amount"
-                          type="number"
-                          placeholder="0.00"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          disabled={isSending}
-                          className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 transition-all duration-200"
-                        />
-                        <p className="text-xs text-gray-500">
-                          Available: {balance.toFixed(2)} STX
-                        </p>
-                      </div>
+                <CardContent className="space-y-6">
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <div className="space-y-3">
+                      <Label htmlFor="recipient-address" className="text-gray-300 text-base">Recipient Address</Label>
+                      <Input
+                        id="recipient-address"
+                        type="text"
+                        placeholder="Enter recipient's STX address"
+                        value={recipientAddress}
+                        onChange={(e) => setRecipientAddress(e.target.value)}
+                        disabled={isSending}
+                        className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 hover:bg-gray-600 transition-all duration-200 h-12 text-base"
+                      />
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Button
-                        onClick={handleSendStx}
-                        disabled={isSending || !recipientAddress || !amount}
-                        size="lg"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all duration-200 animate-pulse"
-                      >
-                        {isSending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Sending STX...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-4 w-4" />
-                            Send STX
-                          </>
-                        )}
-                      </Button>
-
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setRecipientAddress("")
-                          setAmount("")
-                        }}
-                        size="lg"
+                    <div className="space-y-3">
+                      <Label htmlFor="amount" className="text-gray-300 text-base">Amount (STX)</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        placeholder="0.00"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
                         disabled={isSending}
-                        className="flex-1 border-gray-600 hover:bg-gray-700 hover:scale-105 transition-all duration-200"
-                      >
-                        Clear
-                      </Button>
+                        className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 transition-all duration-200 h-12 text-base"
+                      />
+                      <p className="text-sm text-gray-500">
+                        Available: {balance.toFixed(2)} STX
+                      </p>
                     </div>
                   </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                    <Button
+                      onClick={handleSendStx}
+                      disabled={isSending || !recipientAddress || !amount}
+                      size="lg"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 hover:scale-105 transition-all duration-200 animate-pulse h-12 text-base"
+                    >
+                      {isSending ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Sending STX...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-5 w-5" />
+                          Send STX
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setRecipientAddress("")
+                        setAmount("")
+                      }}
+                      size="lg"
+                      disabled={isSending}
+                      className="flex-1 border-gray-600 hover:bg-gray-700 hover:scale-105 transition-all duration-200 h-12 text-base"
+                    >
+                      Clear Form
+                    </Button>
+                  </div>
+
+                  {error && (
+                    <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg">
+                      <p className="text-red-400 text-sm">{error}</p>
+                    </div>
+                  )}
+
+                  {success && (
+                    <div className="p-4 bg-green-500/10 border border-green-500/50 rounded-lg">
+                      <p className="text-green-400 text-sm">{success}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

@@ -17,20 +17,7 @@ export default function WalletPage() {
   const [balance, setBalance] = useState<number>(0)
   const [isLoadingBalance, setIsLoadingBalance] = useState(true)
   const [isRequestingFaucet, setIsRequestingFaucet] = useState(false)
-  const [faucetTxId, setFaucetTxId] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [privateKeyCopied, setPrivateKeyCopied] = useState(false)
-
-  // Send STX states
-  const [recipientAddress, setRecipientAddress] = useState("")
-  const [amount, setAmount] = useState("")
-  const [isSending, setIsSending] = useState(false)
   const [lastTxId, setLastTxId] = useState<string | null>(null)
-
-  // Check if this is a local wallet
-  const isLocalWallet = user?.subOrgId === "local-wallet"
 
 export default function WalletPage() {
   const { user, isAuthenticated, isLoading, getUserPrivateKey } = useAuth()

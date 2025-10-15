@@ -17,13 +17,22 @@ export async function createPosition(params: {
   entryPrice: number
   collateral: number
   leverage: number
+  orderType?: "market" | "limit"
+  stopLoss?: number
+  takeProfit?: number
+  expiration?: string | null
   privateKey: string
 }): Promise<Position> {
-  const { userId, userAddress, symbol, side, entryPrice, collateral, leverage, privateKey } = params
+  const { userId, userAddress, symbol, side, entryPrice, collateral, leverage, orderType = "market", stopLoss, takeProfit, expiration, privateKey } = params
 
   // Validate collateral amount - minimum 100 STX
   if (collateral < 100) {
     throw new Error("Minimum collateral requirement is 100 STX. Please increase your collateral amount.")
+  }
+
+  // For limit orders, validate entry price
+  if (orderType === "limit" && (!entryPrice || entryPrice <= 0)) {
+    throw new Error("Please set a valid entry price for limit order")
   }
 
   // Calculate position details
@@ -43,6 +52,10 @@ export async function createPosition(params: {
     status: "open",
     realized_pnl: 0,
     opened_at: new Date().toISOString(),
+    order_type: orderType,
+    stop_loss: stopLoss,
+    take_profit: takeProfit,
+    expiration: expiration,
   }
 
   // Deposit collateral on-chain

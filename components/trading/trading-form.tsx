@@ -9,15 +9,18 @@ import { getStacksBalance } from "@/lib/blockchain/stacks"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createPosition } from "@/lib/trading/position-manager"
 import { computePosition, getRiskWarning } from "@/lib/trading/calculator"
-import { Loader2, AlertTriangle, Info } from "lucide-react"
+import { Loader2, AlertTriangle, Info, Clock, Target } from "lucide-react"
 import type { SupportedAsset } from "@/lib/price-feed/types"
 import type { PositionSide } from "@/lib/trading/types"
 
 interface TradingFormProps {
   userId: string
 }
+
+type OrderType = "market" | "limit"
 
 export function TradingForm({ userId }: TradingFormProps) {
   // Check if AuthProvider context is available before using useAuth
@@ -41,6 +44,13 @@ export function TradingForm({ userId }: TradingFormProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  // Limit Order States
+  const [orderType, setOrderType] = useState<OrderType>("market")
+  const [entryPrice, setEntryPrice] = useState<number | "">(0)
+  const [stopLoss, setStopLoss] = useState<number | "">(0)
+  const [takeProfit, setTakeProfit] = useState<number | "">(0)
+  const [expiration, setExpiration] = useState<string>("GTC") // Good Till Cancelled
 
   const { price, isLoading: priceLoading } = usePrice(asset)
 
@@ -75,7 +85,7 @@ export function TradingForm({ userId }: TradingFormProps) {
 
   const preview = price
     ? computePosition({
-        entry: price,
+        entry: orderType === "limit" && entryPrice ? entryPrice : price,
         price: price,
         collateral, // Use STX amount directly
         leverage,
@@ -108,6 +118,14 @@ export function TradingForm({ userId }: TradingFormProps) {
       return
     }
 
+    // For limit orders, validate entry price
+    if (orderType === "limit") {
+      if (!entryPrice || entryPrice <= 0) {
+        setError("Please set a valid entry price for limit order")
+        return
+      }
+    }
+
     try {
       setIsCreating(true)
       setError(null)
@@ -124,9 +142,13 @@ export function TradingForm({ userId }: TradingFormProps) {
         userAddress: user.walletAddress,
         symbol: asset,
         side,
-        entryPrice: price,
+        entryPrice: orderType === "limit" && entryPrice ? entryPrice : price,
         collateral, // Store STX amount directly
         leverage,
+        orderType,
+        stopLoss: stopLoss || undefined,
+        takeProfit: takeProfit || undefined,
+        expiration: expiration === "GTC" ? null : expiration,
         privateKey: userPrivateKey
       });
 
@@ -135,6 +157,10 @@ export function TradingForm({ userId }: TradingFormProps) {
       // Reset form
       setCollateral(100) // Set to minimum allowed value
       setLeverage(10)
+      setEntryPrice(0)
+      setStopLoss(0)
+      setTakeProfit(0)
+      setOrderType("market")
 
       // Reload positions
       setTimeout(() => window.location.reload(), 1500)
@@ -149,81 +175,216 @@ export function TradingForm({ userId }: TradingFormProps) {
   return (
     <Card className="border-border bg-card p-6 shadow-lg">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-foreground">Asset</Label>
-            <Select value={asset} onValueChange={(v) => setAsset(v as SupportedAsset)}>
-              <SelectTrigger className="bg-background border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
-                <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
-                <SelectItem value="STX">Stacks (STX)</SelectItem>
-                <SelectItem value="SOL">Solana (SOL)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <Tabs value={orderType} onValueChange={(value) => setOrderType(value as OrderType)}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="market">Market Order</TabsTrigger>
+            <TabsTrigger value="limit">Limit Order</TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-2">
-            <Label className="text-foreground">Direction</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={side === "long" ? "default" : "outline"}
-                onClick={() => setSide("long")}
-                className={`h-12 ${side === "long" ? "bg-success hover:bg-success/90 text-white" : "border-border hover:bg-success/10"}`}
-              >
-                Long
-              </Button>
-              <Button
-                type="button"
-                variant={side === "short" ? "default" : "outline"}
-                onClick={() => setSide("short")}
-                className={`h-12 ${side === "short" ? "bg-danger hover:bg-danger/90 text-white" : "border-border hover:bg-danger/10"}`}
-              >
-                Short
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label className="text-foreground">Leverage: {leverage}x</Label>
-              <span className="text-sm text-muted-foreground">{leverage >= 25 ? "High Risk" : leverage >= 10 ? "Medium Risk" : "Low Risk"}</span>
-            </div>
-            <Input
-              type="range"
-              min="1"
-              max="100"
-              value={leverage}
-              onChange={(e) => setLeverage(Number(e.target.value))}
-              className="bg-background border-border"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-foreground">Collateral (STX)</Label>
-            <Input
-              type="number"
-              value={collateral}
-              onChange={(e) => setCollateral(Number(e.target.value))}
-              min="100"
-              step="1"
-              className="bg-background border-border"
-            />
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Wallet Balance:</span>
-              <span className="font-medium text-foreground">{walletBalance.toFixed(2)} STX</span>
-            </div>
-            {price && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Value:</span>
-                <span className="font-medium text-foreground">${(collateral * price).toFixed(2)} USD</span>
+          <TabsContent value="market" className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-foreground">Asset</Label>
+                <Select value={asset} onValueChange={(v) => setAsset(v as SupportedAsset)}>
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
+                    <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
+                    <SelectItem value="STX">Stacks (STX)</SelectItem>
+                    <SelectItem value="SOL">Solana (SOL)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </div>
-        </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Direction</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={side === "long" ? "default" : "outline"}
+                    onClick={() => setSide("long")}
+                    className={`h-12 ${side === "long" ? "bg-success hover:bg-success/90 text-white" : "border-border hover:bg-success/10"}`}
+                  >
+                    Long
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={side === "short" ? "default" : "outline"}
+                    onClick={() => setSide("short")}
+                    className={`h-12 ${side === "short" ? "bg-danger hover:bg-danger/90 text-white" : "border-border hover:bg-danger/10"}`}
+                  >
+                    Short
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-foreground">Leverage: {leverage}x</Label>
+                  <span className="text-sm text-muted-foreground">{leverage >= 25 ? "High Risk" : leverage >= 10 ? "Medium Risk" : "Low Risk"}</span>
+                </div>
+                <Input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={leverage}
+                  onChange={(e) => setLeverage(Number(e.target.value))}
+                  className="bg-background border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Collateral (STX)</Label>
+                <Input
+                  type="number"
+                  value={collateral}
+                  onChange={(e) => setCollateral(Number(e.target.value))}
+                  min="100"
+                  step="1"
+                  className="bg-background border-border"
+                />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Wallet Balance:</span>
+                  <span className="font-medium text-foreground">{walletBalance.toFixed(2)} STX</span>
+                </div>
+                {price && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Value:</span>
+                    <span className="font-medium text-foreground">${(collateral * price).toFixed(2)} USD</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="limit" className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-foreground">Asset</Label>
+                <Select value={asset} onValueChange={(v) => setAsset(v as SupportedAsset)}>
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
+                    <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
+                    <SelectItem value="STX">Stacks (STX)</SelectItem>
+                    <SelectItem value="SOL">Solana (SOL)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Direction</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={side === "long" ? "default" : "outline"}
+                    onClick={() => setSide("long")}
+                    className={`h-12 ${side === "long" ? "bg-success hover:bg-success/90 text-white" : "border-border hover:bg-success/10"}`}
+                  >
+                    Long
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={side === "short" ? "default" : "outline"}
+                    onClick={() => setSide("short")}
+                    className={`h-12 ${side === "short" ? "bg-danger hover:bg-danger/90 text-white" : "border-border hover:bg-danger/10"}`}
+                  >
+                    Short
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Entry Price ($)</Label>
+                <Input
+                  type="number"
+                  value={entryPrice}
+                  onChange={(e) => setEntryPrice(Number(e.target.value))}
+                  placeholder={`Current: ${price || "Loading..."}`}
+                  className="bg-background border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Stop Loss ($)</Label>
+                <Input
+                  type="number"
+                  value={stopLoss}
+                  onChange={(e) => setStopLoss(Number(e.target.value))}
+                  placeholder="Price to close position"
+                  className="bg-background border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Take Profit ($)</Label>
+                <Input
+                  type="number"
+                  value={takeProfit}
+                  onChange={(e) => setTakeProfit(Number(e.target.value))}
+                  placeholder="Price to take profit"
+                  className="bg-background border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Expiration</Label>
+                <Select value={expiration} onValueChange={setExpiration}>
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GTC">Good Till Cancelled</SelectItem>
+                    <SelectItem value="1D">1 Day</SelectItem>
+                    <SelectItem value="1W">1 Week</SelectItem>
+                    <SelectItem value="1M">1 Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label className="text-foreground">Leverage: {leverage}x</Label>
+                  <span className="text-sm text-muted-foreground">{leverage >= 25 ? "High Risk" : leverage >= 10 ? "Medium Risk" : "Low Risk"}</span>
+                </div>
+                <Input
+                  type="range"
+                  min="1"
+                  max="100"
+                  value={leverage}
+                  onChange={(e) => setLeverage(Number(e.target.value))}
+                  className="bg-background border-border"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Collateral (STX)</Label>
+                <Input
+                  type="number"
+                  value={collateral}
+                  onChange={(e) => setCollateral(Number(e.target.value))}
+                  min="100"
+                  step="1"
+                  className="bg-background border-border"
+                />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Wallet Balance:</span>
+                  <span className="font-medium text-foreground">{walletBalance.toFixed(2)} STX</span>
+                </div>
+                {price && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Value:</span>
+                    <span className="font-medium text-foreground">${(collateral * price).toFixed(2)} USD</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {preview && (
           <Card className="border-border bg-secondary/50 p-4">
@@ -234,7 +395,7 @@ export function TradingForm({ userId }: TradingFormProps) {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Entry Price:</span>
-                <span className="font-medium text-foreground">${price?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-medium text-foreground">${(orderType === "limit" && entryPrice ? entryPrice : price)?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Position Size:</span>
@@ -243,6 +404,14 @@ export function TradingForm({ userId }: TradingFormProps) {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Liquidation Price:</span>
                 <span className="font-medium text-foreground">${preview.liquidationPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Stop Loss:</span>
+                <span className="font-medium text-foreground">{stopLoss ? `$${stopLoss}` : "Not set"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Take Profit:</span>
+                <span className="font-medium text-foreground">{takeProfit ? `$${takeProfit}` : "Not set"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Potential PnL (1% move):</span>
@@ -272,7 +441,7 @@ export function TradingForm({ userId }: TradingFormProps) {
               Opening Position...
             </>
           ) : (
-            "Open Position"
+            `${orderType === "limit" ? "Place Limit Order" : "Open Position"}`
           )}
         </Button>
       </form>

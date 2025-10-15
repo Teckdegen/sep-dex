@@ -212,7 +212,7 @@ export default function WalletPage() {
   return (
     <AppLayout walletAddress={user.walletAddress}>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-        <div className="container mx-auto max-w-4xl">
+        <div className="w-full">
           {/* Header */}
           <div className="mb-8 text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -284,7 +284,7 @@ export default function WalletPage() {
 
           {/* Tabs for Wallet Sections */}
           <Tabs defaultValue="send" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-gray-800/50">
+            <TabsList className="grid w-full grid-cols-4 bg-gray-800/50">
               <TabsTrigger value="send" className="flex items-center gap-2">
                 <Send className="h-4 w-4" />
                 Send
@@ -296,6 +296,10 @@ export default function WalletPage() {
               <TabsTrigger value="activity" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Activity
+              </TabsTrigger>
+              <TabsTrigger value="history" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                History
               </TabsTrigger>
             </TabsList>
 
@@ -442,6 +446,72 @@ export default function WalletPage() {
                   ) : (
                     <p className="text-gray-400 text-center">No recent activity</p>
                   )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="history" className="mt-6">
+              <Card className="bg-gray-800/50 backdrop-blur-sm border-gray-700 shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-xl font-semibold text-white">
+                    <Clock className="h-6 w-6 text-blue-500 animate-bounce" />
+                    Transaction History
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Complete record of all your wallet transactions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Sample transaction records */}
+                    <div className="p-4 bg-green-500/10 border border-green-500/50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <ArrowDownLeft className="h-5 w-5 text-green-500" />
+                          <div>
+                            <p className="text-green-400 font-medium">Received STX</p>
+                            <p className="text-sm text-gray-300">Faucet Request</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white font-bold">+500.00 STX</p>
+                          <p className="text-sm text-gray-500">2 hours ago</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-blue-500/10 border border-blue-500/50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Send className="h-5 w-5 text-blue-500" />
+                          <div>
+                            <p className="text-blue-400 font-medium">Sent STX</p>
+                            <p className="text-sm text-gray-300">To ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white font-bold">-100.00 STX</p>
+                          <p className="text-sm text-gray-500">1 day ago</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gray-700/50 border border-gray-600 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Wallet className="h-5 w-5 text-gray-400" />
+                          <div>
+                            <p className="text-gray-300 font-medium">Wallet Created</p>
+                            <p className="text-sm text-gray-400">Initial Setup</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white font-bold">0.00 STX</p>
+                          <p className="text-sm text-gray-500">1 week ago</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

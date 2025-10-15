@@ -257,6 +257,105 @@ export async function sendStx(amount: number, recipient: string, senderKey: stri
   }
 }
 
+// Limit Order functions (assuming contract has limit order support)
+export async function placeLimitOrder(
+  asset: string,
+  direction: 'buy' | 'sell',
+  size: number,
+  leverage: number,
+  limitPrice: number,
+  collateral: number,
+  senderKey: string
+): Promise<string> {
+  console.log("[v0] Placing limit order:", { asset, direction, size, leverage, limitPrice, collateral })
+
+  const txOptions = {
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "place-limit-order",
+    functionArgs: [
+      standardPrincipalCV(asset), // Assuming asset is an address, but should be string
+      // Note: Clarity expects specific types, this is pseudocode
+      // In real implementation, convert to Clarity types
+    ],
+    senderKey,
+    network: getNetwork(),
+    anchorMode: AnchorMode.Any,
+    postConditionMode: PostConditionMode.Allow,
+  }
+
+  // This is a placeholder - implement based on actual contract
+  const transaction = await makeContractCall(txOptions)
+  const broadcastResponse = await broadcastTransaction({
+    transaction: transaction,
+    network: getNetwork()
+  })
+
+  if ('error' in broadcastResponse) {
+    throw new Error(`Limit order placement failed: ${broadcastResponse.error}`)
+  }
+
+  console.log("[v0] Limit order placed successfully:", broadcastResponse.txid)
+  return broadcastResponse.txid
+}
+
+export async function cancelLimitOrder(orderId: number, senderKey: string): Promise<string> {
+  console.log("[v0] Cancelling limit order:", orderId)
+
+  const txOptions = {
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "cancel-limit-order",
+    functionArgs: [uintCV(orderId)],
+    senderKey,
+    network: getNetwork(),
+    anchorMode: AnchorMode.Any,
+    postConditionMode: PostConditionMode.Allow,
+  }
+
+  const transaction = await makeContractCall(txOptions)
+  const broadcastResponse = await broadcastTransaction({
+    transaction: transaction,
+    network: getNetwork()
+  })
+
+  if ('error' in broadcastResponse) {
+    throw new Error(`Limit order cancellation failed: ${broadcastResponse.error}`)
+  }
+
+  console.log("[v0] Limit order cancelled successfully:", broadcastResponse.txid)
+  return broadcastResponse.txid
+}
+
+// Check and execute limit orders (keeper function)
+export async function checkAndExecuteLimitOrders(asset: string, currentPrice: number, adminKey: string): Promise<string> {
+  console.log("[v0] Checking limit orders for asset:", asset, "at price:", currentPrice)
+
+  const txOptions = {
+    contractAddress: CONTRACT_ADDRESS,
+    contractName: CONTRACT_NAME,
+    functionName: "check-and-execute-orders",
+    functionArgs: [standardPrincipalCV(asset)], 
+    senderKey: adminKey,
+    network: getNetwork(),
+    anchorMode: AnchorMode.Any,
+    postConditionMode: PostConditionMode.Allow,
+  }
+
+  const transaction = await makeContractCall(txOptions)
+  const broadcastResponse = await broadcastTransaction({
+    transaction: transaction,
+    network: getNetwork()
+  })
+
+  if ('error' in broadcastResponse) {
+    throw new Error(`Limit order check failed: ${broadcastResponse.error}`)
+  }
+
+  console.log("[v0] Limit orders checked successfully:", broadcastResponse.txid)
+  return broadcastResponse.txid
+}
+
 // Get transaction status
 export async function getTransactionStatus(txId: string): Promise<string> {
   try {

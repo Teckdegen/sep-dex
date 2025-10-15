@@ -152,6 +152,7 @@ export async function closePosition(
         const profitMicroStx = Math.floor(profitInStx * 1_000_000)
         const txId = await sendStx(profitMicroStx, userAddress, adminPrivateKey)
         console.log("[v0] ✅ Direct admin transfer successful with txId:", txId)
+        // Balance will be updated in UI via existing useEffect in wallet page
       } catch (directTransferError) {
         console.error("[v0] ❌ Direct admin transfer failed:", directTransferError instanceof Error ? directTransferError.message : String(directTransferError))
         console.log("[v0] 🔄 Falling back to contract admin payout...")
@@ -160,6 +161,7 @@ export async function closePosition(
         try {
           await adminPayout(userAddress, profitInStx, adminPrivateKey)
           console.log("[v0] ✅ Contract admin payout successful")
+          // Balance will be updated via wallet page's useEffect
         } catch (contractError) {
           console.error("[v0] ❌ Contract admin payout also failed:", contractError instanceof Error ? contractError.message : String(contractError))
           console.log("[v0] ⚠️ Profit payout failed - both direct transfer and contract payout failed")
@@ -184,14 +186,19 @@ export async function closePosition(
       }
 
       try {
-        await adminPayout(userAddress, profitInStx, SENDER_KEY)
-        console.log("[v0] Server-side contract payout successful")
-      } catch (contractError) {
-        console.error("[v0] Server-side contract payout failed, attempting fallback transfer:", contractError)
-
+        console.log("[v0] Attempting server-side direct admin transfer first...")
         const profitMicroStx = Math.floor(profitInStx * 1_000_000)
         const txId = await sendStx(profitMicroStx, userAddress, SENDER_KEY)
-        console.log("[v0] Server-side fallback transfer successful with txId:", txId)
+        console.log("[v0] Server-side direct transfer successful with txId:", txId)
+      } catch (directError) {
+        console.error("[v0] Server-side direct transfer failed, falling back to contract payout:", directError)
+
+        try {
+          await adminPayout(userAddress, profitInStx, SENDER_KEY)
+          console.log("[v0] Server-side contract payout successful")
+        } catch (contractError) {
+          console.error("[v0] Server-side contract payout also failed:", contractError)
+        }
       }
     } catch (error) {
       console.error("[v0] Server-side admin payout failed:", error)

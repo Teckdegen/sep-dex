@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { getUser, clearUser, type User } from "../storage/local-storage"
 import { createUserSubOrg, createStacksWallet, loginWithPasskey, createUserInStorage, createLocalWallet, importLocalWallet, getLocalWalletPrivateKey, getTurnkeyWalletPrivateKey } from "../turnkey/service"
 import { depositStx } from "../stacks-client" // Import Stacks client
@@ -29,6 +30,7 @@ export { AuthContext }
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
     checkAuth()
@@ -329,7 +331,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('sep-dex-transactions')
     localStorage.removeItem('sep-dex-price-cache')
     setUser(null)
-    console.log("[v0] User logged out and all data cleared")
+    // Redirect to login page instantly
+    router.push('/auth/login')
+    console.log("[v0] User logged out and redirected to login")
   }
 
   console.log("[v0] AuthProvider state:", { user, isLoading, isAuthenticated: !!user })

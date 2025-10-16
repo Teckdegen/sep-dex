@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { priceFeedManager } from "./manager"
+import { getPriceHistory } from "./coingecko"
 import type { SupportedAsset } from "./types"
 
 export function usePrice(asset: SupportedAsset, refreshInterval = 30000) {
@@ -66,8 +67,26 @@ export function useAllPrices(refreshInterval = 60000) {
           try {
             const priceData = await priceFeedManager.getPriceWithChange(asset)
             allPriceChanges[asset] = priceData.priceChangePercentage24h
+            // Update prices with the fetched price
+            if (allPrices[asset] !== priceData.price) {
+              allPrices[asset] = priceData.price
+            }
           } catch (err) {
-            allPriceChanges[asset] = 0 // Default to 0 if fetch fails
+            console.warn(`[v0] Failed to fetch price for ${asset}, trying historical fallback`)
+            try {
+              // Fallback to latest historical price
+              const history = await getPriceHistory(asset, 1) // Get 1 day history
+              if (history.length > 0) {
+                allPrices[asset] = history[history.length - 1].price
+                allPriceChanges[asset] = 0 // No change data for historical
+              } else {
+                allPrices[asset] = 0
+                allPriceChanges[asset] = 0
+              }
+            } catch (histErr) {
+              allPrices[asset] = 0
+              allPriceChanges[asset] = 0
+            }
           }
         }
 

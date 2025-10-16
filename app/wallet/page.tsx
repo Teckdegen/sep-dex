@@ -22,10 +22,10 @@ export default function WalletPage() {
   const [faucetTxId, setFaucetTxId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Fetch STX price for USD conversion
+  // Fetch STX price for USD conversion (no longer needed, but keeping for potential future use)
   const { price: stxPrice, isLoading: stxPriceLoading, error: stxPriceError } = usePrice("STX")
 
-  // Calculate USD value of STX balance
+  // Calculate USD value of STX balance (no longer displayed)
   const usdBalance = balance && stxPrice ? balance * stxPrice : 0
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -239,12 +239,7 @@ export default function WalletPage() {
                       <Loader2 className="h-16 w-16 animate-spin text-blue-500 mx-auto" />
                     ) : (
                       <div>
-                        <div className="mb-2">
-                          {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} STX
-                        </div>
-                        <div className="text-2xl text-gray-300">
-                          ≈ ${usdBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
-                        </div>
+                        {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} STX
                       </div>
                     )}
                   </div>

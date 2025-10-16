@@ -1,11 +1,31 @@
-// Price feed integration with Binance as primary and CoinGecko as backup
+// Price feed integration with Binance as primary, Bybit as secondary, and CoinGecko as backup
 import { savePriceCache, getCachedPrice } from "../storage/local-storage"
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3"
 const BINANCE_API = "https://api.binance.com/api/v3"
+const BYBIT_API = "https://api.bybit.com/v5"
 
 // Binance symbols mapping (primary source)
 const ASSET_TO_BINANCE_SYMBOL: Record<string, string> = {
+  BTC: "BTCUSDT",
+  ETH: "ETHUSDT",
+  STX: "STXUSDT",
+  SOL: "SOLUSDT",
+  BNB: "BNBUSDT",
+  ADA: "ADAUSDT",
+  XRP: "XRPUSDT",
+  DOGE: "DOGEUSDT",
+  DOT: "DOTUSDT",
+  LTC: "LTCUSDT",
+  AVAX: "AVAXUSDT",
+  MATIC: "MATICUSDT",
+  UNI: "UNIUSDT",
+  LINK: "LINKUSDT",
+  BCH: "BCHUSDT",
+}
+
+// Bybit symbols mapping (secondary source)
+const ASSET_TO_BYBIT_SYMBOL: Record<string, string> = {
   BTC: "BTCUSDT",
   ETH: "ETHUSDT",
   STX: "STXUSDT",
@@ -54,7 +74,7 @@ export interface PriceData {
   lastUpdated: number
 }
 
-// Get current price (Binance primary, CoinGecko backup)
+// Get current price (Binance primary, Bybit secondary, CoinGecko backup)
 export async function getCurrentPrice(asset: string): Promise<number> {
   console.log(`[v0] Getting price for asset: ${asset}`)
   
@@ -75,6 +95,18 @@ export async function getCurrentPrice(asset: string): Promise<number> {
     }
   } catch (error) {
     console.error(`[v0] Binance API error for ${asset}:`, error)
+  }
+
+  // Try Bybit as secondary source
+  try {
+    const bybitPrice = await getPriceFromBybit(asset)
+    if (bybitPrice > 0) {
+      savePriceCache(asset, bybitPrice)
+      console.log(`[v0] Using Bybit price for ${asset}: ${bybitPrice}`)
+      return bybitPrice
+    }
+  } catch (error) {
+    console.error(`[v0] Bybit API error for ${asset}:`, error)
   }
 
   // Fallback to CoinGecko for all supported assets
@@ -189,7 +221,7 @@ export async function getPriceData(asset: string): Promise<PriceData> {
   }
 }
 
-// Get price history (Binance primary with time-based data, CoinGecko backup)
+// Get price history (Binance primary, Bybit secondary, CoinGecko backup)
 export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ timestamp: number; price: number }>> {
   // Try to get history from Binance first for all assets
   try {
@@ -200,6 +232,17 @@ export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ 
     }
   } catch (error) {
     console.error(`[v0] Binance history failed for ${asset}:`, error)
+  }
+
+  // Try Bybit as secondary source
+  try {
+    const bybitHistory = await getPriceHistoryFromBybit(asset, days)
+    if (bybitHistory.length > 0) {
+      console.log(`[v0] Using Bybit history for ${asset}`)
+      return bybitHistory
+    }
+  } catch (error) {
+    console.error(`[v0] Bybit history failed for ${asset}:`, error)
   }
 
   // Fallback to CoinGecko for all supported assets
@@ -243,7 +286,7 @@ export async function getPriceHistory(asset: string, days = 7): Promise<Array<{ 
   }
 }
 
-// Get price history from Binance with time-based data
+// Get price history from Binance
 async function getPriceHistoryFromBinance(asset: string, days: number): Promise<Array<{ timestamp: number; price: number }>> {
   const symbol = ASSET_TO_BINANCE_SYMBOL[asset]
   if (!symbol) {
@@ -258,11 +301,9 @@ async function getPriceHistoryFromBinance(asset: string, days: number): Promise<
     // Determine interval based on days
     let interval = "1d" // Default to daily
     if (days <= 1) {
-      interval = "5m" // 5-minute intervals for 1 day
+      interval = "1m" // 1-minute intervals for 1 day
     } else if (days <= 7) {
-      interval = "1h" // Hourly for 7 days or less
-    } else if (days <= 30) {
-      interval = "4h" // 4-hourly for 30 days or less
+      interval = "1h" // 1-hour intervals for 7 days or less
     }
 
     const response = await fetch(
@@ -275,14 +316,66 @@ async function getPriceHistoryFromBinance(asset: string, days: number): Promise<
 
     const data = await response.json()
 
+    if (!data || data.length === 0) {
+      throw new Error(`No historical data for ${asset}`)
+    }
+
     // Parse klines data
-    // Each kline is [openTime, open, high, low, close, volume, closeTime, ...]
+    // Each kline is [openTime, open, high, low, close, volume, closeTime, quoteAssetVolume, numTrades, takerBuyBaseAssetVolume, takerBuyQuoteAssetVolume, ignore]
     return data.map((kline: any) => ({
-      timestamp: kline[0], // Open time
+      timestamp: parseInt(kline[0]), // Open time
       price: parseFloat(kline[4]), // Close price
     }))
   } catch (error) {
     console.error(`Failed to fetch price history from Binance for ${asset}:`, error)
+    throw error
+  }
+}
+
+// Get price history from Bybit with time-based data
+async function getPriceHistoryFromBybit(asset: string, days: number): Promise<Array<{ timestamp: number; price: number }>> {
+  const symbol = ASSET_TO_BYBIT_SYMBOL[asset]
+  if (!symbol) {
+    throw new Error(`Unsupported asset for Bybit: ${asset}`)
+  }
+
+  try {
+    // Calculate time range
+    const endTime = Date.now()
+    const startTime = endTime - (days * 24 * 60 * 60 * 1000) // Convert days to milliseconds
+
+    // Determine interval based on days
+    let interval = "D" // Default to daily
+    if (days <= 1) {
+      interval = "5" // 5-minute intervals for 1 day
+    } else if (days <= 7) {
+      interval = "60" // 1-hour intervals for 7 days or less
+    } else if (days <= 30) {
+      interval = "240" // 4-hour intervals for 30 days or less
+    }
+
+    const response = await fetch(
+      `${BYBIT_API}/market/kline?category=spot&symbol=${symbol}&interval=${interval}&startTime=${startTime}&endTime=${endTime}&limit=1000`
+    )
+
+    if (!response.ok) {
+      throw new Error(`Bybit API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.result?.list || data.result.list.length === 0) {
+      throw new Error(`No historical data for ${asset}`)
+    }
+
+    // Parse klines data
+    // Each kline is [startTime, open, high, low, close, volume, turnover]
+    return data.result.list.map((kline: any) => ({
+      timestamp: parseInt(kline[0]), // Start time
+      price: parseFloat(kline[4]), // Close price
+    }))
+  } catch (error) {
+    console.error(`Failed to fetch price history from Bybit for ${asset}:`, error)
     throw error
   }
 }

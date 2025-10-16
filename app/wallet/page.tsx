@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, Send, RefreshCw, Copy, Check, Key, AlertTriangle, Wallet, TrendingUp, Shield, DollarSign, ArrowUpRight, ArrowDownLeft, Clock } from "lucide-react"
-import { getStacksBalance, sendStx } from "@/lib/blockchain/stacks"
+import { usePrice } from "@/lib/price-feed/hooks"
 import { AppLayout } from "@/components/layout/app-layout"
 
 export default function WalletPage() {
@@ -21,6 +21,12 @@ export default function WalletPage() {
   const [isRequestingFaucet, setIsRequestingFaucet] = useState(false)
   const [faucetTxId, setFaucetTxId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Fetch STX price for USD conversion
+  const { price: stxPrice, isLoading: stxPriceLoading, error: stxPriceError } = usePrice("STX")
+
+  // Calculate USD value of STX balance
+  const usdBalance = balance && stxPrice ? balance * stxPrice : 0
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [privateKeyCopied, setPrivateKeyCopied] = useState(false)
@@ -232,10 +238,21 @@ export default function WalletPage() {
                     {isLoadingBalance ? (
                       <Loader2 className="h-16 w-16 animate-spin text-blue-500 mx-auto" />
                     ) : (
-                      `${balance.toFixed(2)} STX`
+                      <div>
+                        <div className="mb-2">
+                          {balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} STX
+                        </div>
+                        <div className="text-2xl text-gray-300">
+                          ≈ ${usdBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <p className="text-gray-500 mt-2">≈ $ {(balance * 2.5).toFixed(2)} USD</p>
+                  {stxPrice && (
+                    <p className="text-gray-400 text-sm mt-2">
+                      STX Price: ${stxPrice.toFixed(4)} USD
+                    </p>
+                  )}
                 </div>
 
                 {/* Wallet Address */}

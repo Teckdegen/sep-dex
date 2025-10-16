@@ -46,6 +46,7 @@ export function usePrice(asset: SupportedAsset, refreshInterval = 30000) {
 
 export function useAllPrices(refreshInterval = 60000) {
   const [prices, setPrices] = useState<Record<SupportedAsset, number> | null>(null)
+  const [priceChanges, setPriceChanges] = useState<Record<SupportedAsset, number> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,8 +56,24 @@ export function useAllPrices(refreshInterval = 60000) {
     async function fetchPrices() {
       try {
         const allPrices = await priceFeedManager.getAllPrices()
+        const allPriceChanges: Record<SupportedAsset, number> = {
+          BTC: 0, ETH: 0, STX: 0, SOL: 0, BNB: 0, ADA: 0, XRP: 0, DOGE: 0, DOT: 0, LTC: 0, AVAX: 0, MATIC: 0, UNI: 0, LINK: 0, BCH: 0,
+        }
+
+        // Fetch price changes for each asset
+        const assets: SupportedAsset[] = ["BTC", "ETH", "STX", "SOL", "BNB", "ADA", "XRP", "DOGE", "DOT", "LTC", "AVAX", "MATIC", "UNI", "LINK", "BCH"]
+        for (const asset of assets) {
+          try {
+            const priceData = await priceFeedManager.getPriceWithChange(asset)
+            allPriceChanges[asset] = priceData.priceChangePercentage24h
+          } catch (err) {
+            allPriceChanges[asset] = 0 // Default to 0 if fetch fails
+          }
+        }
+
         if (isMounted) {
           setPrices(allPrices)
+          setPriceChanges(allPriceChanges)
           setError(null)
         }
       } catch (err) {
@@ -69,6 +86,34 @@ export function useAllPrices(refreshInterval = 60000) {
             ETH: 0,
             STX: 0,
             SOL: 0,
+            BNB: 0,
+            ADA: 0,
+            XRP: 0,
+            DOGE: 0,
+            DOT: 0,
+            LTC: 0,
+            AVAX: 0,
+            MATIC: 0,
+            UNI: 0,
+            LINK: 0,
+            BCH: 0,
+          })
+          setPriceChanges({
+            BTC: 0,
+            ETH: 0,
+            STX: 0,
+            SOL: 0,
+            BNB: 0,
+            ADA: 0,
+            XRP: 0,
+            DOGE: 0,
+            DOT: 0,
+            LTC: 0,
+            AVAX: 0,
+            MATIC: 0,
+            UNI: 0,
+            LINK: 0,
+            BCH: 0,
           })
         }
       } finally {
@@ -87,5 +132,5 @@ export function useAllPrices(refreshInterval = 60000) {
     }
   }, [refreshInterval])
 
-  return { prices, isLoading, error }
+  return { prices, priceChanges, isLoading, error }
 }

@@ -14,7 +14,7 @@ import type { SupportedAsset } from "@/lib/price-feed/types"
 
 export default function ChartsPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
-  const { prices, isLoading: pricesLoading, error: pricesError } = useAllPrices()
+  const { prices, priceChanges, isLoading: pricesLoading, error: pricesError } = useAllPrices()
   const router = useRouter()
   const [selectedAsset, setSelectedAsset] = useState<SupportedAsset>("BTC")
 
@@ -75,25 +75,34 @@ export default function ChartsPage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  {assets.map((asset) => (
-                    <Button
-                      key={asset}
-                      onClick={() => setSelectedAsset(asset)}
-                      variant={selectedAsset === asset ? "default" : "outline"}
-                      className={`h-16 flex-col gap-2 ${
-                        selectedAsset === asset
-                          ? "bg-blue-600 hover:bg-blue-700"
-                          : "border-gray-600 hover:bg-gray-700"
-                      }`}
-                    >
-                      <span className="font-bold text-lg">{asset}</span>
-                      {prices && prices[asset] && (
-                        <span className="text-sm">
-                          ${prices[asset].toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      )}
-                    </Button>
-                  ))}
+                  {assets.map((asset) => {
+                    const price = prices?.[asset]
+                    const priceChange = priceChanges?.[asset]
+                    const isPositive = (priceChange || 0) >= 0
+
+                    return (
+                      <Button
+                        key={asset}
+                        onClick={() => setSelectedAsset(asset)}
+                        variant={selectedAsset === asset ? "default" : "outline"}
+                        className={`h-16 flex-col gap-2 ${
+                          selectedAsset === asset
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : "border-gray-600 hover:bg-gray-700"
+                        }`}
+                      >
+                        <div className="font-bold text-white">{asset}</div>
+                        <div className="text-xs text-gray-300">
+                          {price ? `$${price.toFixed(2)}` : "Loading..."}
+                        </div>
+                        {priceChange !== undefined && (
+                          <div className={`text-xs ${isPositive ? "text-green-400" : "text-red-400"}`}>
+                            {isPositive ? "+" : ""}{priceChange.toFixed(2)}%
+                          </div>
+                        )}
+                      </Button>
+                    )
+                  })}
                 </div>
               </CardContent>
             </Card>

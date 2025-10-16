@@ -24,6 +24,7 @@ export interface PriceData {
 
 export interface CachedPrice {
   price: number
+  priceChangePercentage24h: number
   timestamp: number
 }
 

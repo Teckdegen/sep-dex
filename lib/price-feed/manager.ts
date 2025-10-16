@@ -11,11 +11,34 @@ class PriceFeedManager {
       return memoryPrice
     }
 
-    // Level 2: Fetch from price feed (Binance for supported pairs, CoinGecko backup)
+    // Level 2: Fetch from price feed (Binance primary, CoinGecko backup)
     const freshPrice = await this.fetchFromPriceFeed(asset)
     this.updateMemoryCache(asset, freshPrice)
 
     return freshPrice
+  }
+
+  async getPriceWithChange(asset: SupportedAsset): Promise<{ price: number; priceChangePercentage24h: number }> {
+    // Level 1: Memory cache (fastest)
+    const cached = this.memoryCache.get(asset)
+    if (cached && Date.now() - cached.timestamp < this.MEMORY_CACHE_DURATION) {
+      return {
+        price: cached.price,
+        priceChangePercentage24h: cached.priceChangePercentage24h,
+      }
+    }
+
+    // Level 2: Fetch from price feed
+    const binanceData = await this.fetchFromBinanceWithChange(asset)
+    if (binanceData) {
+      this.updateMemoryCache(asset, binanceData.price, binanceData.priceChangePercentage24h)
+      return binanceData
+    }
+
+    // Fallback to CoinGecko (without change for now)
+    const { getCurrentPrice } = await import('./coingecko')
+    const price = await getCurrentPrice(asset)
+    return { price, priceChangePercentage24h: 0 }
   }
 
   private getMemoryCachedPrice(asset: SupportedAsset): number | null {
@@ -32,7 +55,7 @@ class PriceFeedManager {
   }
 
   private async fetchFromPriceFeed(asset: SupportedAsset): Promise<number> {
-    // Use Binance API for supported USDT pairs, CoinGecko as backup
+    // Use Binance for supported pairs, fallback to CoinGecko
     const binancePrice = await this.fetchFromBinance(asset)
     if (binancePrice !== null) {
       return binancePrice
@@ -49,15 +72,41 @@ class PriceFeedManager {
       const binanceSymbol = this.getBinanceSymbol(asset)
       if (!binanceSymbol) return null
 
-      const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`)
+      const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`)
       if (!response.ok) {
         throw new Error(`Binance API error: ${response.status}`)
       }
 
       const data = await response.json()
-      return parseFloat(data.price)
+      const price = parseFloat(data.lastPrice)
+      const priceChangePercentage24h = parseFloat(data.priceChangePercent)
+
+      // Cache both price and change
+      this.updateMemoryCache(asset, price, priceChangePercentage24h)
+      return price
     } catch (error) {
       console.error(`[v0] Binance fetch failed for ${asset}:`, error)
+      return null
+    }
+  }
+
+  private async fetchFromBinanceWithChange(asset: SupportedAsset): Promise<{ price: number; priceChangePercentage24h: number } | null> {
+    try {
+      const binanceSymbol = this.getBinanceSymbol(asset)
+      if (!binanceSymbol) return null
+
+      const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${binanceSymbol}`)
+      if (!response.ok) {
+        throw new Error(`Binance API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return {
+        price: parseFloat(data.lastPrice),
+        priceChangePercentage24h: parseFloat(data.priceChangePercent),
+      }
+    } catch (error) {
+      console.error(`[v0] Binance fetch with change failed for ${asset}:`, error)
       return null
     }
   }
@@ -85,9 +134,10 @@ class PriceFeedManager {
     return symbolMap[asset] || null
   }
 
-  private updateMemoryCache(asset: SupportedAsset, price: number): void {
+  private updateMemoryCache(asset: SupportedAsset, price: number, priceChangePercentage24h: number = 0): void {
     this.memoryCache.set(asset, {
       price,
+      priceChangePercentage24h,
       timestamp: Date.now(),
     })
   }
